@@ -1,0 +1,35 @@
+{
+  "cli": {
+    "version": ">= 14.5.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "API_BASE_URL": "https://mbolo-backend.onrender.com"
+      },
+      "channel": "development"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "env": {
+        "API_BASE_URL": "https://mbolo-backend.onrender.com"
+      },
+      "channel": "preview"
+    },
+    "production": {
+      "env": {
+        "API_BASE_URL": "https://mbolo-backend.onrender.com"
+      },
+      "channel": "production"
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
