@@ -106,6 +106,7 @@ const SubcategoriesScreen = () => {
             </View>
           </TouchableOpacity>
         )}
+        ItemSeparatorComponent={() => <View style={styles.separator} />} // Línea divisoria
       />
 
       {selectedCategory && (
@@ -124,6 +125,7 @@ const SubcategoriesScreen = () => {
                   </View>
                 </TouchableOpacity>
               )}
+              ItemSeparatorComponent={() => <View style={styles.separator} />} // Línea divisoria
             />
           ) : (
             <Text style={styles.noData}>No hay subcategorías disponibles</Text>
@@ -139,32 +141,38 @@ export default SubcategoriesScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#fff", // Fondo blanco
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 10,
-    marginTop: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#f5f5f5", // Fondo gris claro para el título
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0", // Línea divisoria
   },
   item: {
-    backgroundColor: "#fff",
-    padding: 15,
-    marginVertical: 5,
-    borderRadius: 8,
-    elevation: 2,
+    backgroundColor: "#fff", // Fondo blanco para los elementos
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   selectedItem: {
-    backgroundColor: "#d1e7dd",
+    backgroundColor: "#e3f2fd", // Fondo azul claro para el ítem seleccionado
   },
   text: {
     fontSize: 16,
+    color: "#333", // Texto oscuro
   },
   noData: {
     textAlign: "center",
     marginTop: 20,
     fontSize: 16,
     color: "gray",
+  },
+  separator: {
+    height: 1,
+    backgroundColor: "#e0e0e0", // Línea divisoria gris
+    marginHorizontal: 16,
   },
 });

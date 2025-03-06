@@ -15,11 +15,20 @@ import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "../../config/Service.Config";
 import { useRouter } from "expo-router";
+
 const ArchivoScreen = () => {
   const [userProducts, setUserProducts] = useState([]);
   const [userId, setUserId] = useState(null);
   const navigation = useNavigation();
   const router = useRouter();
+
+  const handleEditProduct = (product) => {
+    // Navegar a la pantalla de edición con el producto como parámetro
+    router.push({
+      pathname: "/cart/ProductEdition",
+      params: { item: JSON.stringify(product) }, // Convertir el producto a JSON
+    });
+  };
 
   useEffect(() => {
     const getUserId = async () => {
@@ -80,7 +89,7 @@ const ArchivoScreen = () => {
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => router.push("/cart/ProductEdition", { item })}
+      onPress={() => handleEditProduct(item)} // Pasar el producto seleccionado
     >
       <View style={styles.container}>
         <View style={styles.imageContainer}>
@@ -135,15 +144,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   card: {
-    margin: 10,
+    marginHorizontal: 10, // Solo margen horizontal
     padding: 10,
-    backgroundColor: COLORS.white,
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    // backgroundColor: COLORS.white,
+    borderBottomWidth: 1, // Línea fina negra en la parte inferior
+    borderBottomColor: COLORS.black, // Color de la línea
   },
   container: {
     flexDirection: "row",
