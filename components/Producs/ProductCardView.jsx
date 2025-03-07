@@ -16,6 +16,12 @@ import { API_BASE_URL } from "./../../config/Service.Config";
 import { useRouter } from "expo-router";
 
 const ProductCardView = ({ item }) => {
+  console.log("Datos del producto:", item); // Verifica los datos que recibe el componente
+
+  if (!item || !item.title || !item.supplier || !item.price) {
+    return null; // No renderizar si los datos no son válidos
+  }
+
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState(null);
@@ -58,7 +64,8 @@ const ProductCardView = ({ item }) => {
   };
 
   // Obtener la primera imagen del array de imágenes
-  const firstImage = item.images.length > 0 ? item.images[0].url : null;
+  const firstImage =
+    item.images && item.images.length > 0 ? item.images[0].url : null;
 
   return (
     <TouchableOpacity

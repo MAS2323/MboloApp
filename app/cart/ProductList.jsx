@@ -43,6 +43,7 @@ const ProductList = ({ userId }) => {
     setSelectedCategory(category);
     router.push(`/categorias/ProducListCategory?categoryId=${category._id}`);
   };
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
