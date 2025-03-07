@@ -72,12 +72,36 @@ export default function ProductDetails() {
         </View>
 
         {/* Muestra las imágenes del producto */}
-        <FlatList
+        {/* <FlatList
           data={product.images}
           renderItem={({ item }) => (
             <View style={styles.imageContainer}>
               <Image source={{ uri: item.url }} style={styles.image} />
             </View>
+          )}
+          keyExtractor={(image, index) => index.toString()}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          pagingEnabled
+        /> */}
+        <FlatList
+          data={product.images}
+          renderItem={({ item, index }) => (
+            <TouchableOpacity
+              onPress={() =>
+                router.push({
+                  pathname: "/cart/ImageGalleryScreen",
+                  params: {
+                    images: JSON.stringify(product.images),
+                    index: index.toString(),
+                  },
+                })
+              }
+            >
+              <View style={styles.imageContainer}>
+                <Image source={{ uri: item.url }} style={styles.image} />
+              </View>
+            </TouchableOpacity>
           )}
           keyExtractor={(image, index) => index.toString()}
           horizontal

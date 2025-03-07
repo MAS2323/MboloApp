@@ -5,11 +5,17 @@ import { useRouter } from "expo-router";
 
 const SearchTile = ({ item }) => {
   const router = useRouter();
+
   return (
     <View>
       <TouchableOpacity
         style={styles.container}
-        onPress={() => router.push("/cart/ProductDetails", { item })}
+        onPress={() =>
+          router.push({
+            pathname: "/cart/ProductDetails",
+            params: { item: JSON.stringify(item) }, // Convertir a JSON
+          })
+        }
       >
         <View style={styles.image}>
           <Image
