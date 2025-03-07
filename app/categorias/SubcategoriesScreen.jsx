@@ -68,9 +68,17 @@ const SubcategoriesScreen = () => {
     }
   };
 
-  const handleCategorySelect = (category) => {
+  const handleCategorySelect = async (category) => {
     setSelectedCategory(category);
     setSubcategories([]); // Limpiar subcategorías al cambiar de categoría
+
+    // Guardar la categoría seleccionada en AsyncStorage
+    try {
+      await AsyncStorage.setItem("selectedCategory", JSON.stringify(category));
+    } catch (error) {
+      console.error("Error saving category:", error);
+      Alert.alert("Error", "No se pudo guardar la categoría.");
+    }
   };
 
   const handleSubcategoryPress = async (subcategory) => {
@@ -79,7 +87,6 @@ const SubcategoriesScreen = () => {
         "selectedSubcategory",
         JSON.stringify(subcategory)
       );
-
       // Navegar de regreso a AddScreen
       router.push("/AddScreen");
     } catch (error) {

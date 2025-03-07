@@ -17,56 +17,75 @@ import { API_BASE_URL } from "../../config/Service.Config";
 
 const ProducListCategory = () => {
   const { categoryId } = useLocalSearchParams();
-  const { subcategoryId } = useLocalSearchParams();
+  const [subcategoryId, setSubcategoryId] = useState(null);
   const [subcategorias, setSubcategorias] = useState([]);
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSubcategoriesAndProducts = async () => {
+    const fetchSubcategories = async () => {
       try {
-        // Obtener subcategorías
-        const subcategoriesResponse = await axios.get(
+        const response = await axios.get(
           `${API_BASE_URL}/subcategories/category/${categoryId}`
         );
-        setSubcategorias(subcategoriesResponse.data);
+        setSubcategorias(response.data);
 
-        // Obtener productos de la categoría seleccionada
-        const productsResponse = await axios.get(
-          `${API_BASE_URL}/subcategories/filter/products?category/${categoryId}/subcategory/${subcategoryId}`
-        );
-        setProducts(productsResponse.data);
+        if (response.data.length > 0) {
+          setSubcategoryId(response.data[0]._id); // Seleccionar la primera subcategoría automáticamente
+        }
       } catch (error) {
-        console.error("Error fetching data:", error);
-        Alert.alert("Error", "No se pudieron cargar los datos.");
+        console.error("Error fetching subcategories:", error);
+        Alert.alert("Error", "No se pudieron cargar las subcategorías.");
+      }
+    };
+
+    if (categoryId) {
+      fetchSubcategories();
+    }
+  }, [categoryId]);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (!subcategoryId) return; // Evitar la consulta si no hay subcategoría seleccionada
+
+      try {
+        setIsLoading(true);
+        const response = await axios.get(
+          `${API_BASE_URL}/products/filter/products?category=${categoryId}&subcategory=${subcategoryId}`
+        );
+        setProducts(response.data);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        Alert.alert("Error", "No se pudieron cargar los productos.");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchSubcategoriesAndProducts();
-  }, [categoryId]);
+    fetchProducts();
+  }, [subcategoryId]);
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size={SIZES.xxLarge} color={COLORS.primary} />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* AppBarWrapper para subcategorías */}
+      {/* Barra de subcategorías */}
       <View style={styles.appBarWrapper}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {subcategorias.map((subcategory) => (
             <TouchableOpacity
               key={subcategory._id}
-              style={styles.subcategoryButton}
-              onPress={
-                () => {} /* Puedes agregar funcionalidad aquí si es necesario */
-              }
+              style={[
+                styles.subcategoryButton,
+                subcategoryId === subcategory._id && styles.selectedSubcategory,
+              ]}
+              onPress={() => setSubcategoryId(subcategory._id)}
             >
               <Text style={styles.subcategoryText}>{subcategory.name}</Text>
             </TouchableOpacity>
@@ -74,7 +93,7 @@ const ProducListCategory = () => {
         </ScrollView>
       </View>
 
-      {/* Lista de Productos (Vertical) */}
+      {/* Lista de productos */}
       <FlatList
         data={products}
         numColumns={2}
@@ -115,6 +134,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  selectedSubcategory: {
+    backgroundColor: COLORS.primary,
   },
   subcategoryText: {
     fontSize: SIZES.medium,

@@ -28,6 +28,7 @@ export default function AddScreen() {
   const [loader, setLoader] = useState(false);
   const [images, setImages] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [categories, setCategories] = useState([]);
   const [cities, setCities] = useState([]);
   const [error, setError] = useState(null);
@@ -119,20 +120,29 @@ export default function AddScreen() {
   };
 
   useEffect(() => {
-    const getSelectedSubcategory = async () => {
-      const storedSubcategory = await AsyncStorage.getItem(
-        "selectedSubcategory"
-      );
-      if (storedSubcategory) {
-        try {
-          const subcategory = JSON.parse(storedSubcategory);
-          setSelectedCategory(subcategory);
-        } catch (error) {
-          console.error("Error parsing stored subcategory:", error);
+    const getSelectedCategoryAndSubcategory = async () => {
+      try {
+        // Recuperar la categoría seleccionada
+        const storedCategory = await AsyncStorage.getItem("selectedCategory");
+        if (storedCategory) {
+          const category = JSON.parse(storedCategory);
+          setSelectedCategory(category);
         }
+
+        // Recuperar la subcategoría seleccionada
+        const storedSubcategory = await AsyncStorage.getItem(
+          "selectedSubcategory"
+        );
+        if (storedSubcategory) {
+          const subcategory = JSON.parse(storedSubcategory);
+          setSelectedSubcategory(subcategory);
+        }
+      } catch (error) {
+        console.error("Error parsing stored category or subcategory:", error);
       }
     };
-    getSelectedSubcategory();
+
+    getSelectedCategoryAndSubcategory();
   }, []);
 
   useEffect(() => {
@@ -214,21 +224,29 @@ export default function AddScreen() {
       const endpoint = `${API_BASE_URL}/products/${cleanUserId}`;
       const formDataToSend = new FormData();
 
+      // Agregar campos del formulario
       Object.keys(formData).forEach((key) => {
         if (formData[key]) {
           formDataToSend.append(key, formData[key]);
         }
       });
 
+      // Agregar categoría y subcategoría
       if (selectedCategory) {
-        formDataToSend.append("subcategory", selectedCategory._id);
+        formDataToSend.append("category", selectedCategory._id);
+      } else {
+        Alert.alert("Error", "Debes seleccionar una categoría.");
+        return;
+      }
+
+      if (selectedSubcategory) {
+        formDataToSend.append("subcategory", selectedSubcategory._id);
       } else {
         Alert.alert("Error", "Debes seleccionar una subcategoría.");
         return;
       }
 
-      formDataToSend.append("user", userId);
-
+      // Agregar imágenes
       images.forEach((imageUri, index) => {
         const uriParts = imageUri.split(".");
         const fileType = uriParts[uriParts.length - 1];
@@ -239,6 +257,7 @@ export default function AddScreen() {
         });
       });
 
+      // Enviar la solicitud
       const response = await axios.post(endpoint, formDataToSend, {
         headers: {
           Accept: "application/json",
@@ -261,6 +280,7 @@ export default function AddScreen() {
                 whatsapp: "",
               });
               setImages([]);
+              AsyncStorage.removeItem("selectedCategory");
               AsyncStorage.removeItem("selectedSubcategory");
               router.replace("(tabs)");
             },
@@ -285,7 +305,6 @@ export default function AddScreen() {
       setLoader(false);
     }
   };
-
   if (!userId) {
     return (
       <View style={styles.container}>
