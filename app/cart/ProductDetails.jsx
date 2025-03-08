@@ -71,19 +71,6 @@ export default function ProductDetails() {
           </TouchableOpacity>
         </View>
 
-        {/* Muestra las imágenes del producto */}
-        {/* <FlatList
-          data={product.images}
-          renderItem={({ item }) => (
-            <View style={styles.imageContainer}>
-              <Image source={{ uri: item.url }} style={styles.image} />
-            </View>
-          )}
-          keyExtractor={(image, index) => index.toString()}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          pagingEnabled
-        /> */}
         <FlatList
           data={product.images}
           renderItem={({ item, index }) => (
@@ -146,7 +133,10 @@ export default function ProductDetails() {
             <View style={styles.location}>
               <Ionicons name="location-outline" size={24} color="black" />
               <Text>
-                {product.product_location.name || "Ubicación no disponible"}
+                {product.product_location?.name || "Ubicación no disponible"}
+              </Text>
+              <Text>
+                , {product.domicilio || "Barrio, zona, calle no disponible"}
               </Text>
             </View>
             <View style={styles.location}>
@@ -155,7 +145,7 @@ export default function ProductDetails() {
                 size={24}
                 color="black"
               />
-              <Text>Entrega gratis</Text>
+              {/* <Text>Entrega gratis</Text> */}
             </View>
           </View>
 

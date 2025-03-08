@@ -40,6 +40,7 @@ export default function AddScreen() {
     product_location: "",
     description: "",
     phoneNumber: "",
+    domicilio: "",
     whatsapp: "",
     type: "product",
   });
@@ -277,6 +278,7 @@ export default function AddScreen() {
                 product_location: "",
                 description: "",
                 phoneNumber: "",
+                domicilio: "",
                 whatsapp: "",
               });
               setImages([]);
@@ -409,6 +411,7 @@ export default function AddScreen() {
             "title",
             "supplier",
             "description",
+            "domicilio",
             "price",
             "phoneNumber",
             "whatsapp",

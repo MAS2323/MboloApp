@@ -31,7 +31,10 @@ export default function ProductEdition() {
     if (item) {
       try {
         const parsedProduct = JSON.parse(item); // Parsear el string JSON
-        setEditedProduct(parsedProduct);
+        setEditedProduct({
+          ...parsedProduct,
+          domicilio: parsedProduct.domicilio || { name: "" }, // Asegurar que domicilio tenga un valor por defecto
+        });
         setImages(parsedProduct.images.map((img) => img.url)); // Cargar las imágenes del producto
         setLoading(false);
       } catch (error) {
@@ -144,6 +147,7 @@ export default function ProductEdition() {
       const updatedData = {
         title: editedProduct.title,
         price: editedProduct.price,
+        domicilio: editedProduct.domicilio,
         description: editedProduct.description,
         product_location: editedProduct.product_location,
         phoneNumber: editedProduct.phoneNumber,
@@ -253,12 +257,21 @@ export default function ProductEdition() {
             <View style={styles.locationWrapper}>
               <TextInput
                 style={styles.locationInput}
-                value={editedProduct.product_location.name}
+                value={editedProduct.product_location?.name || ""}
                 onChangeText={(text) =>
                   handleInputChange("product_location", { name: text })
                 }
                 placeholder="Ubicación del producto"
                 editable={false}
+              />
+            </View>
+
+            <View style={styles.locationWrapper}>
+              <TextInput
+                style={styles.locationInput}
+                value={editedProduct.domicilio.toString()}
+                onChangeText={(text) => handleInputChange("domicilio", text)}
+                placeholder="Barrio, calle, zona..."
               />
             </View>
 
