@@ -16,7 +16,7 @@ import { API_BASE_URL } from "./../../config/Service.Config";
 import { useRouter } from "expo-router";
 
 const ProductCardView = ({ item }) => {
-  console.log("Datos del producto:", item); // Verifica los datos que recibe el componente
+  // Verifica los datos que recibe el componente
 
   if (!item || !item.title || !item.supplier || !item.price) {
     return null; // No renderizar si los datos no son válidos

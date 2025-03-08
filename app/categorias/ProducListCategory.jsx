@@ -57,7 +57,6 @@ const ProducListCategory = () => {
           `${API_BASE_URL}/products/filter/products?category=${categoryId}&subcategory=${subcategoryId}`
         );
         setProducts(response.data.products || []); // Asegúrate de que sea un array
-        console.log("Productos cargados:", response.data.products); // Verifica los datos
       } catch (error) {
         console.error("Error fetching products:", error);
         Alert.alert("Error", "No se pudieron cargar los productos.");
@@ -110,7 +109,6 @@ const ProducListCategory = () => {
         data={products}
         numColumns={2}
         renderItem={({ item }) => {
-          console.log("Datos del producto:", item); // Verifica los datos que recibe cada item
           return <ProductCardView item={item} />;
         }}
         keyExtractor={(item) => item._id}
