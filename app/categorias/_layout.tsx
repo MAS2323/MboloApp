@@ -15,6 +15,7 @@ export default function Layout() {
       <Stack.Screen name="SubcategoriesScreen" />
       <Stack.Screen name="SubCategoryDetails" />
       <Stack.Screen name="CategoryMenuScreen" />
+      <Stack.Screen name="SubCategoryMenuScreen" />
       {/* Otras rutas */}
     </Stack>
   );

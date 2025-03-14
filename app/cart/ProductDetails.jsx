@@ -7,29 +7,26 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  Share,
 } from "react-native";
 import React, { useState, useEffect } from "react";
 import {
   Ionicons,
-  SimpleLineIcons,
   MaterialCommunityIcons,
+  FontAwesome,
   Fontisto,
 } from "@expo/vector-icons";
 import styles from "./../../components/ui/productUI/ProductDetails.style";
 import { COLORS } from "./../../constants/theme";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { API_BASE_URL } from "../../config/Service.Config";
+import axios from "axios";
 
 export default function ProductDetails() {
   const router = useRouter();
   const { item } = useLocalSearchParams();
   const product = typeof item === "string" ? JSON.parse(item) : item;
-  const [count, setCount] = useState(1);
   const [loading, setLoading] = useState(true);
-
-  // Incrementar y decrementar la cantidad de productos
-  const handleIncrement = () => setCount((prevCount) => prevCount + 1);
-  const handleDecrement = () =>
-    setCount((prevCount) => (prevCount > 1 ? prevCount - 1 : prevCount));
 
   // Abrir WhatsApp
   const openWhatsApp = () => {
@@ -43,6 +40,48 @@ export default function ProductDetails() {
     Linking.openURL(url).catch(() =>
       alert("No se puede abrir el marcador telefónico")
     );
+  };
+
+  // Función para compartir el producto
+  const handleShare = async () => {
+    try {
+      // Verifica que `product.id` esté definido y sea válido
+      if (!product?.id) {
+        throw new Error("ID de producto no válido");
+      }
+
+      // URL para generar el enlace corto
+      const productUrl = `${API_BASE_URL}/products/generate-link/${product.id}`;
+
+      // Hacer la solicitud al servidor
+      const response = await axios.get(productUrl);
+
+      // Verifica que la respuesta contenga el enlace corto
+      if (!response.data?.shortLink) {
+        throw new Error("No se pudo generar el enlace corto");
+      }
+
+      const shortLink = response.data.shortLink;
+
+      // Mensaje para compartir
+      const message = `Mira este producto: ${product.title}\n\n${product.description}\n\nPrecio: XAF ${product.price}\n\nEnlace: ${shortLink}`;
+
+      // Compartir el enlace
+      const result = await Share.share({
+        message,
+        url: shortLink,
+        title: product.title,
+      });
+
+      if (result.action === Share.sharedAction) {
+        console.log("Compartido con éxito");
+      } else if (result.action === Share.dismissedAction) {
+        console.log("Compartir cancelado");
+      }
+    } catch (error) {
+      console.error("Error al compartir:", error);
+      alert("Hubo un problema al generar el enlace.");
+    }
   };
 
   useEffect(() => {
@@ -66,8 +105,8 @@ export default function ProductDetails() {
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="chevron-back-circle" size={30} color="black" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.navigate("/cart/CartScreen")}>
-            <Fontisto name="shopping-bag" size={24} color={COLORS.black} />
+          <TouchableOpacity onPress={() => {}}>
+            <FontAwesome name="share-square" size={30} color={COLORS.black} />
           </TouchableOpacity>
         </View>
 
@@ -106,23 +145,6 @@ export default function ProductDetails() {
             </View>
           </View>
 
-          <View style={styles.ratingRow}>
-            <View style={styles.rating}>
-              {[1, 2, 3, 4, 5].map((index) => (
-                <Ionicons key={index} name="star" size={24} color="gold" />
-              ))}
-              <Text style={styles.ratingText}>(4.9)</Text>
-            </View>
-            <View style={styles.quantityControl}>
-              <TouchableOpacity onPress={handleIncrement}>
-                <SimpleLineIcons name="plus" size={20} color="black" />
-              </TouchableOpacity>
-              <Text style={styles.ratingText}>{count}</Text>
-              <TouchableOpacity onPress={handleDecrement}>
-                <SimpleLineIcons name="minus" size={20} color="black" />
-              </TouchableOpacity>
-            </View>
-          </View>
           <View style={styles.descriptionWrapper}>
             <Text style={styles.description}>
               {product.description || "Sin descripción"}
@@ -145,7 +167,6 @@ export default function ProductDetails() {
                 size={24}
                 color="black"
               />
-              {/* <Text>Entrega gratis</Text> */}
             </View>
           </View>
 
