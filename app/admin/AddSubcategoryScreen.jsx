@@ -279,7 +279,7 @@ const AddSubcategoryScreen = ({ subcategoryId, onSave }) => {
           <FlatList
             data={images}
             horizontal
-            scrollEnabled={false} // Desactiva el scroll del FlatList
+            scrollEnabled={true} // Desactiva el scroll del FlatList
             showsHorizontalScrollIndicator={false}
             keyExtractor={(_, index) => index.toString()}
             renderItem={({ item, index }) => (

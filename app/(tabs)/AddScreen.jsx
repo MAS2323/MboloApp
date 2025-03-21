@@ -82,6 +82,11 @@ export default function AddScreen() {
 
   const takePhoto = async () => {
     try {
+      if (images.length >= 6) {
+        Alert.alert("Límite alcanzado", "No puedes agregar más de 6 imágenes");
+        return;
+      }
+
       const hasPermission = await requestPermissions();
       if (!hasPermission) return;
 
@@ -92,10 +97,12 @@ export default function AddScreen() {
       });
 
       if (!result.canceled && result.assets?.length > 0) {
-        setImages((prevImages) => [
-          ...prevImages,
-          ...result.assets.map((asset) => asset.uri),
-        ]);
+        const newImages = result.assets.map((asset) => asset.uri);
+        if (images.length + newImages.length > 6) {
+          Alert.alert("Límite alcanzado", "Máximo 6 imágenes en total");
+          return;
+        }
+        setImages((prevImages) => [...prevImages, ...newImages]);
       }
     } catch (error) {
       console.error("Error tomando foto:", error);
@@ -165,9 +172,16 @@ export default function AddScreen() {
       [field]: value,
     });
   };
+  const removeImage = (index) =>
+    setImages((prev) => prev.filter((_, i) => i !== index));
 
   const pickImages = async () => {
     try {
+      if (images.length >= 6) {
+        Alert.alert("Límite alcanzado", "No puedes agregar más de 6 imágenes");
+        return;
+      }
+
       const hasPermission = await requestPermissions();
       if (!hasPermission) return;
 
@@ -180,15 +194,26 @@ export default function AddScreen() {
 
       if (!result.canceled && result.assets?.length > 0) {
         const selectedImages = result.assets.map((asset) => asset.uri);
+        const totalImages = images.length + selectedImages.length;
+
+        if (totalImages > 6) {
+          Alert.alert(
+            "Límite excedido",
+            `Solo puedes seleccionar ${
+              6 - images.length
+            } imagen(es) más. Has intentado seleccionar ${
+              selectedImages.length
+            }`
+          );
+          return;
+        }
+
         setImages((prevImages) => [...prevImages, ...selectedImages]);
-      } else {
-        console.log("Selección cancelada o sin imágenes");
       }
     } catch (error) {
       console.error("Error seleccionando imágenes:", error);
     }
   };
-
   const validateForm = () => {
     const newErrors = {};
     Object.keys(formData).forEach((key) => {
@@ -348,7 +373,7 @@ export default function AddScreen() {
               }}
             >
               <Text style={styles.selectorText}>
-                {selectedCategory?.name || "Seleccionar categoría"}
+                {selectedSubcategory?.name || "Seleccionar categoría"}
               </Text>
               <Ionicons name="chevron-down" size={20} color="black" />
             </TouchableOpacity>
@@ -505,8 +530,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 5,
     right: 5,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    borderRadius: 15,
     padding: 5,
   },
   infoText: {
@@ -555,4 +578,3 @@ const pickerSelectStyles = StyleSheet.create({
 function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
-

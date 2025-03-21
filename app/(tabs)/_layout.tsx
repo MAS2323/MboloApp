@@ -38,6 +38,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <Ionicons size={28} name="heart" color={color} />
           ),
+          headerShown: true,
         }}
       />
       <Tabs.Screen
