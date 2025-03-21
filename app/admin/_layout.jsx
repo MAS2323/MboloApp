@@ -1,20 +1,44 @@
 import { Stack } from "expo-router";
 
-export default function Layout() {
+const Layout = () => {
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Stack.Screen name="AddSubcategoryScreen" />
-      <Stack.Screen name="UserManagementScreen" />
-      <Stack.Screen name="CategorySelectionScreen" />
-      <Stack.Screen name="LocationSelectionScreen" />
-      <Stack.Screen name="getAllSubcategory" />
-      <Stack.Screen name="BannerScreen" />
-      <Stack.Screen name="index" />
-      {/* Otras rutas */}
+    <Stack>
+      {/* Pantalla principal */}
+      <Stack.Screen name="index" options={{ title: "Inicio" }} />
+      {/* Pantallas dentro de admin */}
+      <Stack.Screen name="admin" options={{ title: "Gestión de Banners" }} />
+      <Stack.Screen
+        name="admin/AddSubcategoryScreen"
+        options={{ title: "Añadir Subcategoría" }}
+      />
+      <Stack.Screen
+        name="admin/CategorySelectionScreen"
+        options={{ title: "Seleccionar Categoría" }}
+      />
+      <Stack.Screen
+        name="admin/LocationSelectionScreen"
+        options={{ title: "Seleccionar Ubicación" }}
+      />
+      <Stack.Screen
+        name="admin/UserManagementScreen"
+        options={{ title: "Gestión de Usuarios" }}
+      />
+      <Stack.Screen
+        name="admin/getAllSubcategory"
+        options={{ title: "Todas las Subcategorías" }}
+      />
+      <Stack.Screen name="admin/nnn" options={{ title: "NNN" }} />{" "}
+      {/* Ajusta el título según corresponda */}
+      <Stack.Screen
+        name="admin/banner/AllBannersScreen"
+        // options={{ title: "Todos los Banners" }}
+      />
+      <Stack.Screen
+        name="admin/banner/CreateAdScreen"
+        // options={{ title: "Crear Anuncio" }}
+      />
     </Stack>
   );
-}
+};
+
+export default Layout;
