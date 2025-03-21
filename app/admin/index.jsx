@@ -35,7 +35,7 @@ const AdminScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Admin Dashboard</Text>
+      <Text style={styles.title}>Panel de Administración</Text>
       <View style={styles.grid}>
         {options.map((option, index) => (
           <TouchableOpacity
