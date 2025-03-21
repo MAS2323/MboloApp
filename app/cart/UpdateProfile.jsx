@@ -15,9 +15,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
 import { API_BASE_URL } from "../../config/Service.Config";
+import { useRouter } from "expo-router";
 
 const UpdateProfile = () => {
   const [userId, setUserId] = useState(null);
+  const [userData, setUserData] = useState(null);
   const [image, setImage] = useState("");
   const [userName, setUserName] = useState("");
   const [email, setEmail] = useState("");
@@ -25,45 +27,49 @@ const UpdateProfile = () => {
   const [location, setLocation] = useState("");
   const [mobile, setMobile] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // Obtener el ID del usuario al cargar el componente
-  useEffect(() => {
-    const getUserId = async () => {
-      const id = await AsyncStorage.getItem("id");
-      console.log("User ID:", id);
-      setUserId(id ? id.replace(/\"/g, "") : null);
-    };
-    getUserId();
-  }, []);
+  const router = useRouter();
 
-  // Cargar los datos del usuario desde el backend
-  const fetchUserData = async () => {
+  // Verificar usuario existente y cargar datos desde AsyncStorage
+  const checkExistingUser = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/user/${userId}`);
-      console.log("API Response:", response.data); // Log the response
-      const userData = response.data; // Access the user data directly
-      if (userData) {
-        setUserName(userData.userName);
-        setEmail(userData.email);
-        setLocation(userData.ciudad.name);
-        setMobile(userData.mobile);
-        setImage(userData.image?.url || "");
+      const id = await AsyncStorage.getItem("id");
+      if (!id) {
+        router.navigate("LoginScreen"); // Corregí el typo "LoginSceen" a "LoginScreen"
+        return;
+      }
+      const userId = `user${JSON.parse(id)}`;
+      const currentUser = await AsyncStorage.getItem(userId);
+      if (currentUser) {
+        const parsedUserData = JSON.parse(currentUser);
+        setUserData(parsedUserData);
+        setUserId(JSON.parse(id));
+        setUserName(parsedUserData.userName || "");
+        setEmail(parsedUserData.email || "");
+        setPassword(parsedUserData.password || ""); // Cargar contraseña desde userData
+        setLocation(
+          parsedUserData.location || parsedUserData.ciudad?.name || ""
+        );
+        setMobile(parsedUserData.mobile || "");
+        setImage(parsedUserData.image?.url || "");
+        setIsLoggedIn(true);
       } else {
-        Alert.alert("Error", "User data not found.");
+        router.navigate("LoginScreen");
       }
       setLoading(false);
     } catch (error) {
-      console.error("Error fetching user data:", error);
-      Alert.alert("Error", "Failed to load user data. Please try again later.");
+      setIsLoggedIn(false);
       setLoading(false);
+      console.error("Error recuperando tus datos:", error);
+      router.navigate("LoginScreen");
     }
   };
 
   useEffect(() => {
-    if (userId) {
-      fetchUserData();
-    }
-  }, [userId]);
+    checkExistingUser();
+  }, []);
+
   // Seleccionar una imagen de la galería
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -81,19 +87,19 @@ const UpdateProfile = () => {
 
   // Actualizar el perfil del usuario
   const handleUpdateProfile = async () => {
-    if (!userName || !email || !password || !location || !mobile) {
-      Alert.alert("Error", "All fields are required");
+    if (!userName || !email || !location || !mobile) {
+      Alert.alert("Error", "All fields are required except password");
       return;
     }
 
     const formData = new FormData();
     formData.append("userName", userName);
     formData.append("email", email);
-    formData.append("password", password);
     formData.append("location", location);
     formData.append("mobile", mobile);
 
-    if (image) {
+    if (image && image.startsWith("file://")) {
+      // Solo si es una nueva imagen local
       const filename = image.split("/").pop();
       const match = /\.(\w+)$/.exec(filename);
       const type = match ? `image/${match[1]}` : `image`;
@@ -111,6 +117,22 @@ const UpdateProfile = () => {
           "Content-Type": "multipart/form-data",
         },
       });
+
+      // Actualizar AsyncStorage con los nuevos datos (sin modificar la contraseña)
+      const updatedUserData = {
+        ...userData,
+        userName,
+        email,
+        location,
+        mobile,
+        image: image.startsWith("file://") ? { url: image } : userData.image,
+      };
+      await AsyncStorage.setItem(
+        `user${userId}`,
+        JSON.stringify(updatedUserData)
+      );
+      setUserData(updatedUserData);
+
       Alert.alert("Success", "Profile updated successfully");
     } catch (error) {
       console.error(
@@ -127,6 +149,10 @@ const UpdateProfile = () => {
         <Text>Loading...</Text>
       </View>
     );
+  }
+
+  if (!isLoggedIn) {
+    return null; // La navegación ya está manejada en checkExistingUser
   }
 
   return (
@@ -163,7 +189,7 @@ const UpdateProfile = () => {
             onChangeText={setEmail}
             keyboardType="email-address"
             placeholder="Enter your email"
-            // editable={false} // Deshabilita la edición del email
+            editable={false} // Email no editable
           />
 
           <Text style={styles.label}>Password</Text>
@@ -171,8 +197,9 @@ const UpdateProfile = () => {
             style={styles.input}
             value={password}
             onChangeText={setPassword}
-            secureTextEntry
-            placeholder="Enter your password"
+            secureTextEntry={true} // Mostrar asteriscos
+            placeholder="********"
+            editable={false} // No editable
           />
 
           <Text style={styles.label}>Location</Text>
@@ -181,6 +208,7 @@ const UpdateProfile = () => {
             value={location}
             onChangeText={setLocation}
             placeholder="Enter your location"
+            editable={false}
           />
 
           <Text style={styles.label}>Mobile</Text>
@@ -212,6 +240,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingBottom: 40,
   },
   formContainer: {
     width: "90%",

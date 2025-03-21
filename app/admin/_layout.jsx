@@ -9,6 +9,9 @@ export default function Layout() {
     >
       <Stack.Screen name="AddSubcategoryScreen" />
       <Stack.Screen name="UserManagementScreen" />
+      <Stack.Screen name="CategorySelectionScreen" />
+      <Stack.Screen name="LocationSelectionScreen" />
+      <Stack.Screen name="getAllSubcategory" />
       <Stack.Screen name="index" />
       {/* Otras rutas */}
     </Stack>

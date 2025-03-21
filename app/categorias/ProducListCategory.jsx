@@ -126,12 +126,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.lightwhite,
-    marginTop: 25,
+    marginTop: 40,
   },
   appBarWrapper: {
     paddingHorizontal: SIZES.medium,
     paddingVertical: SIZES.small,
-    backgroundColor: COLORS.white,
+    // backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.lightGray,
   },

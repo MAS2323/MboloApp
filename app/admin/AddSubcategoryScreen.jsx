@@ -11,160 +11,191 @@ import {
   KeyboardAvoidingView,
   FlatList,
   Switch,
+  ScrollView,
 } from "react-native";
 import axios from "axios";
-import { Picker } from "@react-native-picker/picker";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { API_BASE_URL } from "../../config/Service.Config";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
-const AddSubcategoryScreen = ({ subcategoryId }) => {
+import { useFocusEffect, useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const daysOfWeek = [
+  { key: "weekdays", label: "Lunes - Viernes" },
+  { key: "saturday", label: "Sábado" },
+];
+
+const AddSubcategoryScreen = ({ subcategoryId, onSave }) => {
   const [images, setImages] = useState([]);
+  const [schedule, setSchedule] = useState([]);
   const [pdf, setPdf] = useState(null);
-  const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [loader, setLoader] = useState(false);
-
-  // Campos del formulario
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [socialMedia, setSocialMedia] = useState([""]);
-  const [horarios, setHorarios] = useState([]);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
 
-  // Estados para el selector de fecha y hora
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
-  const [startTime, setStartTime] = useState(new Date());
-  const [endTime, setEndTime] = useState(new Date());
+  // Estados para manejo de horarios
+  const [showScheduleOptions, setShowScheduleOptions] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [isSelectingStart, setIsSelectingStart] = useState(true);
+  const [currentDay, setCurrentDay] = useState(null);
+  const [tempStartTime, setTempStartTime] = useState(new Date());
+  const [tempEndTime, setTempEndTime] = useState(new Date());
 
-  // Solicitar permisos para la galería y la cámara
-  const requestPermissions = async () => {
-    if (Platform.OS !== "web") {
-      const { status: galleryStatus } =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-      const { status: cameraStatus } =
-        await ImagePicker.requestCameraPermissionsAsync();
+  const router = useRouter();
 
-      if (galleryStatus !== "granted" || cameraStatus !== "granted") {
-        Alert.alert(
-          "Permisos necesarios",
-          "Necesitamos permisos para acceder a la galería y la cámara."
-        );
-        return false;
+  useFocusEffect(() => {
+    const loadData = async () => {
+      try {
+        const [category, subcategory, location] = await Promise.all([
+          AsyncStorage.getItem("selectedCategory"),
+          AsyncStorage.getItem("selectedSubcategory"),
+          AsyncStorage.getItem("selectedLocation"),
+        ]);
+
+        if (category) setSelectedCategory(JSON.parse(category));
+        if (subcategory) setSelectedSubcategory(JSON.parse(subcategory));
+        if (location) setSelectedLocation(JSON.parse(location));
+      } catch (error) {
+        console.error("Error loading data:", error);
       }
+    };
+    loadData();
+  });
+
+  const navigateToSelection = () =>
+    router.push("/admin/CategorySelectionScreen");
+  const navigateToLocationSelection = () =>
+    router.push("/admin/LocationSelectionScreen");
+
+  const requestPermissions = async () => {
+    if (Platform.OS === "web") return true;
+    const [gallery, camera] = await Promise.all([
+      ImagePicker.requestMediaLibraryPermissionsAsync(),
+      ImagePicker.requestCameraPermissionsAsync(),
+    ]);
+    if (gallery.status !== "granted" || camera.status !== "granted") {
+      Alert.alert(
+        "Permisos necesarios",
+        "Se requieren permisos para galería y cámara"
+      );
+      return false;
     }
     return true;
   };
 
-  useFocusEffect(
-    React.useCallback(() => {
-      const getSelectedSubcategory = async () => {
-        const storedSubcategory = await AsyncStorage.getItem(
-          "selectedSubcategory"
-        );
-        if (storedSubcategory) {
-          const parsedSubcategory = JSON.parse(storedSubcategory);
-          setSelectedSubcategory(parsedSubcategory);
-          await AsyncStorage.removeItem("selectedSubcategory");
-        }
-      };
+  const handleSelectDay = (dayKey) => {
+    setCurrentDay(dayKey);
+    setShowTimePicker(true);
+    setIsSelectingStart(true);
+    setTempStartTime(new Date());
+    setTempEndTime(new Date());
+  };
 
-      getSelectedSubcategory();
-    }, [])
-  );
-
-  // Obtener categorías al cargar el componente
-  useEffect(() => {
-    const fetchCategories = async (id) => {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/categories/${id}`);
-        setCategories(response.data);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
+  const handleTimeChange = (event, selectedDate) => {
+    if (selectedDate) {
+      if (isSelectingStart) {
+        setTempStartTime(selectedDate);
+      } else {
+        setTempEndTime(selectedDate);
       }
-    };
-
-    fetchCategories();
-  }, []);
-
-  // Seleccionar imágenes de la galería
-  const pickImages = async () => {
-    try {
-      const hasPermission = await requestPermissions();
-      if (!hasPermission) return;
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsMultipleSelection: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
-
-      if (!result.canceled && result.assets?.length > 0) {
-        const selectedImages = result.assets.map((asset) => asset.uri);
-        setImages((prevImages) => [...prevImages, ...selectedImages]);
-      }
-    } catch (error) {
-      console.error("Error seleccionando imágenes:", error);
-      Alert.alert("Error", "Hubo un problema al seleccionar las imágenes");
     }
   };
 
-  // Seleccionar un archivo PDF
+  const confirmTime = () => {
+    if (isSelectingStart) {
+      setIsSelectingStart(false);
+    } else {
+      const formattedOpen = tempStartTime.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const formattedClose = tempEndTime.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      const newSchedule = [
+        ...schedule,
+        {
+          day: currentDay === "weekdays" ? "Lunes - Viernes" : "Sábado",
+          open: formattedOpen,
+          close: formattedClose,
+        },
+      ];
+
+      setSchedule(newSchedule);
+      setShowTimePicker(false);
+      setCurrentDay(null);
+      if (onSave) onSave(newSchedule);
+    }
+  };
+
+  const removeSchedule = (index) => {
+    setSchedule((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const toggleScheduleOptions = () => {
+    setShowScheduleOptions((prev) => !prev);
+  };
+
+  const showImagePickerOptions = async () => {
+    if (!(await requestPermissions())) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets?.length > 0) {
+      const newImages = result.assets.map((asset) => asset.uri);
+      if (images.length + newImages.length > 6) {
+        Alert.alert("Límite alcanzado", "Máximo 6 imágenes");
+        return;
+      }
+      setImages((prev) => [...prev, ...newImages]);
+    }
+  };
+
+  const removeImage = (index) =>
+    setImages((prev) => prev.filter((_, i) => i !== index));
+
   const pickPdf = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: "application/pdf",
       });
-
-      if (result.type === "success") {
-        setPdf(result.uri);
-      }
+      if (result.type === "success") setPdf(result);
     } catch (error) {
       console.error("Error seleccionando PDF:", error);
-      Alert.alert("Error", "Hubo un problema al seleccionar el PDF");
+      Alert.alert("Error", "Problema al seleccionar PDF");
     }
   };
 
-  // Manejar el envío del formulario
   const handleSubmit = async () => {
     setLoader(true);
-
     try {
-      // Validar campos obligatorios
-      // if (
-      //   !name ||
-      //   !description ||
-      //   !location ||
-      //   !phoneNumber ||
-      //   !whatsapp ||
-      //   !selectedCategory
-      // ) {
-      //   Alert.alert("Error", "Todos los campos son obligatorios");
-      //   return;
-      // }
-
-      // Crear un objeto FormData
       const formData = new FormData();
-
-      // Agregar campos de texto
       formData.append("name", name);
       formData.append("description", description);
       formData.append("location", location);
       formData.append("phoneNumber", phoneNumber);
       formData.append("whatsapp", whatsapp);
       formData.append("category", selectedCategory);
+      formData.append("schedule", JSON.stringify(schedule));
 
-      // Agregar imágenes
       images.forEach((imageUri, index) => {
-        const uriParts = imageUri.split(".");
-        const fileType = uriParts[uriParts.length - 1];
+        const fileType = imageUri.split(".").pop();
         formData.append("images", {
           uri: imageUri,
           name: `image-${index + 1}.${fileType}`,
@@ -172,7 +203,6 @@ const AddSubcategoryScreen = ({ subcategoryId }) => {
         });
       });
 
-      // Agregar PDF (si existe)
       if (pdf) {
         formData.append("pdf", {
           uri: pdf.uri,
@@ -181,22 +211,19 @@ const AddSubcategoryScreen = ({ subcategoryId }) => {
         });
       }
 
-      // Enviar la solicitud al backend
-      const endpoint = `${API_BASE_URL}/subcategories/category/${selectedCategory}`;
-      const response = await axios.post(endpoint, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const response = await axios.post(
+        `${API_BASE_URL}/subcategories/category/${selectedCategory}`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
 
       if (response.status === 201) {
         Alert.alert("Éxito", "Subcategoría creada exitosamente");
-        // Reiniciar formulario
         setName("");
         setDescription("");
         setLocation("");
         setSocialMedia([""]);
-        setHorarios([]);
+        setSchedule([]);
         setPhoneNumber("");
         setWhatsapp("");
         setImages([]);
@@ -205,218 +232,247 @@ const AddSubcategoryScreen = ({ subcategoryId }) => {
         setIsActive(true);
       }
     } catch (error) {
-      console.error(
-        "Error creating subcategory:",
-        error.response?.data || error.message
-      );
+      console.error("Error:", error.response?.data || error.message);
       Alert.alert(
         "Error",
-        error.response?.data?.message ||
-          "Hubo un problema al crear la subcategoría"
+        error.response?.data?.message || "Error al crear subcategoría"
       );
     } finally {
       setLoader(false);
     }
   };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      <Text style={styles.title}>Agregar Subcategoría</Text>
-
-      <Picker
-        selectedValue={selectedCategory}
-        onValueChange={(itemValue) => setSelectedCategory(itemValue)}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={true}
+        keyboardShouldPersistTaps="handled"
       >
-        <Picker.Item label="Selecciona una categoría" value="" />
-        {categories.map((category) => (
-          <Picker.Item
-            key={category._id}
-            label={category.name}
-            value={category._id}
-          />
-        ))}
-      </Picker>
+        <Text style={styles.title}>Agregar Subcategoría</Text>
 
-      <TouchableOpacity onPress={pickImages}>
-        {images.length > 0 ? (
-          <FlatList
-            horizontal
-            data={images}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item }) => (
-              <Image source={{ uri: item }} style={styles.imagePreview} />
+        <TouchableOpacity
+          style={styles.selectButton}
+          onPress={navigateToSelection}
+        >
+          <Text style={styles.selectButtonText}>
+            {selectedCategory && selectedSubcategory
+              ? `Categoría: ${selectedCategory.name}, Subcategoría: ${selectedSubcategory.name}`
+              : "Seleccionar Categoría y Subcategoría"}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.imageSelectionContainer}>
+          <TouchableOpacity onPress={showImagePickerOptions}>
+            {images.length === 0 ? (
+              <Image
+                source={require("./../../assets/images/placeholderImage.png")}
+                style={styles.image}
+              />
+            ) : (
+              <Ionicons name="add-circle" size={40} color="black" />
             )}
+          </TouchableOpacity>
+          <FlatList
+            data={images}
+            horizontal
+            scrollEnabled={false} // Desactiva el scroll del FlatList
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(_, index) => index.toString()}
+            renderItem={({ item, index }) => (
+              <View style={styles.imageWrapper}>
+                <Image source={{ uri: item }} style={styles.image} />
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => removeImage(index)}
+                >
+                  <Ionicons name="close-circle" size={24} color="red" />
+                </TouchableOpacity>
+              </View>
+            )}
+            style={styles.imageFlatList} // Altura fija
           />
-        ) : (
-          <Image
-            source={require("./../../assets/images/placeholderImage.png")}
-            style={styles.imagePlaceholder}
-          />
+        </View>
+        <Text style={styles.infoText}>Máximo 6 imágenes</Text>
+
+        <TextInput
+          style={styles.input}
+          placeholder="Nombre"
+          value={name}
+          onChangeText={setName}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Descripción"
+          value={description}
+          onChangeText={setDescription}
+          multiline
+        />
+
+        <TouchableOpacity
+          style={styles.selectButton}
+          onPress={navigateToLocationSelection}
+        >
+          <Text style={styles.selectButtonText}>
+            {selectedLocation
+              ? `Provincia: ${selectedLocation.province.name}, Ciudad: ${selectedLocation.city.name}`
+              : "Seleccionar Provincia y Ciudad"}
+          </Text>
+        </TouchableOpacity>
+
+        {socialMedia.map((link, index) => (
+          <View key={index} style={styles.socialMediaContainer}>
+            <TextInput
+              style={[styles.input, styles.socialMediaInput]}
+              placeholder={`Red social ${index + 1}`}
+              value={link}
+              onChangeText={(text) => {
+                const newSocialMedia = [...socialMedia];
+                newSocialMedia[index] = text;
+                setSocialMedia(newSocialMedia);
+              }}
+            />
+            {socialMedia.length > 1 && (
+              <TouchableOpacity
+                style={styles.removeButton}
+                onPress={() =>
+                  setSocialMedia(socialMedia.filter((_, i) => i !== index))
+                }
+              >
+                <Ionicons name="trash" size={20} color="red" />
+              </TouchableOpacity>
+            )}
+          </View>
+        ))}
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setSocialMedia([...socialMedia, ""])}
+        >
+          <Text style={styles.addButtonText}>Agregar Red Social</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={toggleScheduleOptions}>
+          <Text style={styles.subtitle}>
+            Horarios {showScheduleOptions ? "▼" : "►"}
+          </Text>
+        </TouchableOpacity>
+
+        {showScheduleOptions && (
+          <View style={styles.scheduleOptionsContainer}>
+            <FlatList
+              data={daysOfWeek}
+              keyExtractor={(item) => item.key}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.dayButton}
+                  onPress={() => handleSelectDay(item.key)}
+                >
+                  <Text style={styles.dayText}>{item.label}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
         )}
-      </TouchableOpacity>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Nombre"
-        value={name}
-        onChangeText={setName}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Descripción"
-        value={description}
-        onChangeText={setDescription}
-        multiline
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Ubicación"
-        value={location}
-        onChangeText={setLocation}
-      />
+        {showTimePicker && (
+          <View style={styles.timePickerContainer}>
+            <Text style={styles.timeLabel}>
+              {isSelectingStart ? "Hora de apertura" : "Hora de cierre"}
+            </Text>
+            <DateTimePicker
+              value={isSelectingStart ? tempStartTime : tempEndTime}
+              mode="time"
+              is24Hour={true}
+              display={Platform.OS === "ios" ? "spinner" : "clock"}
+              onChange={handleTimeChange}
+            />
+            <TouchableOpacity
+              style={styles.confirmButton}
+              onPress={confirmTime}
+            >
+              <Text style={styles.confirmButtonText}>
+                {isSelectingStart ? "Confirmar apertura" : "Confirmar cierre"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-      {socialMedia.map((link, index) => (
-        <View key={index} style={styles.socialMediaContainer}>
-          <TextInput
-            style={[styles.input, styles.socialMediaInput]}
-            placeholder={`Red social ${index + 1}`}
-            value={link}
-            onChangeText={(text) => {
-              const newSocialMedia = [...socialMedia];
-              newSocialMedia[index] = text;
-              setSocialMedia(newSocialMedia);
-            }}
-          />
-          <TouchableOpacity
-            style={styles.removeButton}
-            onPress={() => {
-              const newSocialMedia = socialMedia.filter((_, i) => i !== index);
-              setSocialMedia(newSocialMedia);
-            }}
-          >
-            <Ionicons name="trash" size={20} color="red" />
-          </TouchableOpacity>
+        {schedule.length > 0 && (
+          <View style={styles.scheduleContainer}>
+            <Text style={styles.scheduleTitle}>Horarios seleccionados:</Text>
+            {schedule.map((item, index) => (
+              <View key={index} style={styles.horarioContainer}>
+                <Text style={styles.scheduleText}>
+                  {`${item.day}: ${item.open} - ${item.close}`}
+                </Text>
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => removeSchedule(index)}
+                >
+                  <Ionicons name="trash" size={20} color="red" />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <TextInput
+          style={styles.input}
+          placeholder="Teléfono"
+          value={phoneNumber}
+          onChangeText={setPhoneNumber}
+          keyboardType="phone-pad"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="WhatsApp"
+          value={whatsapp}
+          onChangeText={setWhatsapp}
+          keyboardType="phone-pad"
+        />
+
+        <TouchableOpacity style={styles.addButton} onPress={pickPdf}>
+          <Text style={styles.addButtonText}>
+            {pdf ? "Cambiar PDF" : "Subir PDF"}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.switchContainer}>
+          <Text>Activo:</Text>
+          <Switch value={isActive} onValueChange={setIsActive} />
         </View>
-      ))}
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => setSocialMedia([...socialMedia, ""])}
-      >
-        <Text style={styles.addButtonText}>Agregar Red Social</Text>
-      </TouchableOpacity>
 
-      {horarios.map((horario, index) => (
-        <View key={index} style={styles.horarioContainer}>
-          <Text style={styles.horarioText}>{horario}</Text>
-          <TouchableOpacity
-            style={styles.removeButton}
-            onPress={() => {
-              const newHorarios = horarios.filter((_, i) => i !== index);
-              setHorarios(newHorarios);
-            }}
-          >
-            <Ionicons name="trash" size={20} color="red" />
-          </TouchableOpacity>
-        </View>
-      ))}
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => setShowStartPicker(true)}
-      >
-        <Text style={styles.addButtonText}>Agregar Horario</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.addButton} onPress={handleSubmit}>
+          <Text style={styles.addButtonText}>Agregar Subcategoría</Text>
+        </TouchableOpacity>
 
-      {showStartPicker && (
-        <DateTimePicker
-          value={startTime}
-          mode="time"
-          is24Hour={true}
-          display="default"
-          onChange={(event, selectedDate) => {
-            setShowStartPicker(false);
-            if (selectedDate) {
-              setStartTime(selectedDate);
-              setShowEndPicker(true);
-            }
-          }}
-        />
-      )}
-
-      {showEndPicker && (
-        <DateTimePicker
-          value={endTime}
-          mode="time"
-          is24Hour={true}
-          display="default"
-          onChange={(event, selectedDate) => {
-            setShowEndPicker(false);
-            if (selectedDate) {
-              setEndTime(selectedDate);
-              const formattedStartTime = startTime.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              });
-              const formattedEndTime = selectedDate.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              });
-              setHorarios([
-                ...horarios,
-                `${formattedStartTime} - ${formattedEndTime}`,
-              ]);
-            }
-          }}
-        />
-      )}
-
-      <TextInput
-        style={styles.input}
-        placeholder="Teléfono de contacto"
-        value={phoneNumber}
-        onChangeText={setPhoneNumber}
-        keyboardType="phone-pad"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="WhatsApp de contacto"
-        value={whatsapp}
-        onChangeText={setWhatsapp}
-        keyboardType="phone-pad"
-      />
-
-      <TouchableOpacity style={styles.addButton} onPress={pickPdf}>
-        <Text style={styles.addButtonText}>
-          {pdf ? "Cambiar PDF" : "Subir PDF"}
-        </Text>
-      </TouchableOpacity>
-
-      <View style={styles.switchContainer}>
-        <Text>Activo:</Text>
-        <Switch
-          value={isActive}
-          onValueChange={(value) => setIsActive(value)}
-        />
-      </View>
-
-      <TouchableOpacity style={styles.addButton} onPress={handleSubmit}>
-        <Text style={styles.addButtonText}>Agregar Subcategoría</Text>
-      </TouchableOpacity>
-
-      {loader && <ActivityIndicator size="large" color="#0000ff" />}
+        {loader && <ActivityIndicator size="large" color="#0000ff" />}
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 };
+
 const styles = {
   container: {
     flex: 1,
+  },
+  scrollContent: {
     padding: 20,
+    paddingBottom: 40,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 20,
+  },
+  subtitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginVertical: 10,
+    color: "#28a745",
   },
   input: {
     borderWidth: 1,
@@ -436,33 +492,63 @@ const styles = {
     textAlign: "center",
     fontWeight: "bold",
   },
-  imagePreview: {
-    width: 100,
-    height: 100,
+  selectButton: {
+    padding: 10,
+    backgroundColor: "#f0f0f0",
     borderRadius: 5,
-    marginVertical: 10,
-    marginRight: 10,
+    marginVertical: 5,
   },
-  imagePlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 5,
-    marginVertical: 10,
-    backgroundColor: "#ccc",
+  selectButtonText: {
+    color: "#333",
   },
-  switchContainer: {
+  imageSelectionContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginVertical: 10,
+    marginBottom: 20,
+  },
+  imageFlatList: {
+    height: 120, // Altura fija para evitar conflicto con ScrollView
+    flexGrow: 0,
+  },
+  image: {
+    width: 100,
+    height: 100,
+    borderRadius: 10,
+    marginRight: 10,
+  },
+  imageWrapper: {
+    position: "relative",
+  },
+  removeButton: {
+    position: "absolute",
+    top: 5,
+    right: 5,
+    padding: 5,
+  },
+  infoText: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 10,
   },
   socialMediaContainer: {
     flexDirection: "row",
     alignItems: "center",
+    marginVertical: 5,
   },
   socialMediaInput: {
     flex: 1,
     marginRight: 10,
+  },
+  scheduleOptionsContainer: {
+    marginLeft: 20,
+    marginBottom: 10,
+  },
+  scheduleContainer: {
+    marginVertical: 10,
+  },
+  scheduleTitle: {
+    fontSize: 16,
+    marginBottom: 5,
   },
   horarioContainer: {
     flexDirection: "row",
@@ -470,12 +556,42 @@ const styles = {
     justifyContent: "space-between",
     marginVertical: 5,
   },
-  horarioText: {
-    flex: 1,
+  scheduleText: {
     fontSize: 16,
   },
-  removeButton: {
+  dayButton: {
     padding: 10,
+    backgroundColor: "#ddd",
+    marginVertical: 5,
+    borderRadius: 5,
+  },
+  dayText: {
+    fontSize: 16,
+    textAlign: "center",
+  },
+  timePickerContainer: {
+    marginVertical: 10,
+    alignItems: "center",
+  },
+  timeLabel: {
+    fontSize: 14,
+    marginVertical: 5,
+  },
+  confirmButton: {
+    backgroundColor: "#28a745",
+    padding: 8,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  confirmButtonText: {
+    color: "#fff",
+    fontSize: 14,
+  },
+  switchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginVertical: 10,
   },
 };
 

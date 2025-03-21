@@ -20,7 +20,7 @@ const SlideSecction = () => {
             fontSize: 20,
           }}
         >
-          Compra!
+          Vende y Compra!
         </Text>
         <TouchableOpacity onPress={() => router.push("/cart/ProductList")}>
           <Ionicons name="grid" size={24} color="#4c86A8" />

@@ -27,8 +27,7 @@ import { useRouter } from "expo-router";
 export default function PerfilScreen() {
   const router = useRouter();
   const [userData, setUserData] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Estado de login
-
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   useEffect(() => {
     checkExistingUser();
   }, []);

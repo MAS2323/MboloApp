@@ -64,8 +64,7 @@ const ProductList = ({ userId }) => {
 
   return (
     <View style={styles.container}>
-      <Header title="TUS PRODUCTOS" />
-
+      <Header title="PRODUCTOS" />
       {/* Lista de Categorías (Horizontal) */}
       <View style={styles.appBarWrapper}>
         <ScrollView
