@@ -101,7 +101,7 @@ const ProductCardView = ({ item }) => {
           {isLoading ? (
             <ActivityIndicator size="small" color={COLORS.primary} />
           ) : (
-            <Ionicons name="add-circle" size={35} color={COLORS.primary} />
+            <Ionicons name="add-circle" size={30} color={COLORS.primary} />
           )}
         </TouchableOpacity>
       </View>
