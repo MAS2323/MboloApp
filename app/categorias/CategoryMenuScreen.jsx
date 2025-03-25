@@ -10,9 +10,13 @@ import React from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 const CategoryMenuScreen = () => {
-  const { categoryName, subcategories } = useLocalSearchParams();
+  const {
+    categoryName,
+    subcategories,
+    id: categoryId,
+  } = useLocalSearchParams();
   const parsedSubcategories = subcategories ? JSON.parse(subcategories) : [];
-  const router = useRouter(); // Hook para navegación
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
@@ -29,26 +33,33 @@ const CategoryMenuScreen = () => {
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.item}
-              onPress={() => router.push(`./SubCategoryMenuScreen/${item._id}`)} // Ruta relativa
+              onPress={() =>
+                router.push({
+                  pathname: "/categorias/SubCategoryMenuScreen",
+                  params: {
+                    id: item._id,
+                    subcategoryName: item.name,
+                    subcategoryDescription: item.description,
+                  },
+                })
+              }
             >
-              {/* Imagen de la subcategoría */}
               <Image
                 source={{
                   uri: item.imageUrl || "https://via.placeholder.com/50",
-                }} // Imagen por defecto si no hay URL
+                }}
                 style={styles.image}
               />
-              {/* Texto de la subcategoría */}
               <View style={styles.textContainer}>
                 <Text style={styles.text}>{item.name}</Text>
-                {item.description && ( // Descripción opcional
+                {item.description && (
                   <Text style={styles.description}>{item.description}</Text>
                 )}
               </View>
             </TouchableOpacity>
           )}
-          contentContainerStyle={styles.flatListContent} // Estilo para el contenido del FlatList
-          style={styles.flatList} // Estilo para el contenedor del FlatList
+          contentContainerStyle={styles.flatListContent}
+          style={styles.flatList}
         />
       ) : (
         <Text style={styles.noData}>No hay subcategorías disponibles</Text>

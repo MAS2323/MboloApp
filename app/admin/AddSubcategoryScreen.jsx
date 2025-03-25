@@ -35,7 +35,7 @@ const AddSubcategoryScreen = ({ subcategoryId, onSave }) => {
   const [loader, setLoader] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("");
+  const [location, setLocation] = useState({ city: "", province: "" });
   const [socialMedia, setSocialMedia] = useState([""]);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -43,7 +43,6 @@ const AddSubcategoryScreen = ({ subcategoryId, onSave }) => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
 
-  // Estados para manejo de horarios
   const [showScheduleOptions, setShowScheduleOptions] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [isSelectingStart, setIsSelectingStart] = useState(true);
@@ -61,17 +60,29 @@ const AddSubcategoryScreen = ({ subcategoryId, onSave }) => {
           AsyncStorage.getItem("selectedSubcategory"),
           AsyncStorage.getItem("selectedLocation"),
         ]);
-
         if (category) setSelectedCategory(JSON.parse(category));
         if (subcategory) setSelectedSubcategory(JSON.parse(subcategory));
-        if (location) setSelectedLocation(JSON.parse(location));
+        if (location) {
+          const parsedLocation = JSON.parse(location);
+          if (parsedLocation.province && parsedLocation.city) {
+            setSelectedLocation(parsedLocation);
+            setLocation({
+              city: parsedLocation.city,
+              province: parsedLocation.province,
+            });
+          } else {
+            console.error(
+              "Ubicación inválida en AsyncStorage:",
+              parsedLocation
+            );
+          }
+        }
       } catch (error) {
         console.error("Error loading data:", error);
       }
     };
     loadData();
   });
-
   const navigateToSelection = () =>
     router.push("/admin/CategorySelectionScreen");
   const navigateToLocationSelection = () =>
@@ -140,6 +151,35 @@ const AddSubcategoryScreen = ({ subcategoryId, onSave }) => {
     }
   };
 
+  const takePhoto = async () => {
+    try {
+      if (images.length >= 6) {
+        Alert.alert("Límite alcanzado", "No puedes agregar más de 6 imágenes");
+        return;
+      }
+
+      const hasPermission = await requestPermissions();
+      if (!hasPermission) return;
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: false,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets?.length > 0) {
+        const newImages = result.assets.map((asset) => asset.uri);
+        if (images.length + newImages.length > 6) {
+          Alert.alert("Límite alcanzado", "Máximo 6 imágenes en total");
+          return;
+        }
+        setImages((prevImages) => [...prevImages, ...newImages]);
+      }
+    } catch (error) {
+      console.error("Error tomando foto:", error);
+    }
+  };
+
   const removeSchedule = (index) => {
     setSchedule((prev) => prev.filter((_, i) => i !== index));
   };
@@ -148,23 +188,59 @@ const AddSubcategoryScreen = ({ subcategoryId, onSave }) => {
     setShowScheduleOptions((prev) => !prev);
   };
 
-  const showImagePickerOptions = async () => {
-    if (!(await requestPermissions())) return;
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      quality: 1,
-    });
-
-    if (!result.canceled && result.assets?.length > 0) {
-      const newImages = result.assets.map((asset) => asset.uri);
-      if (images.length + newImages.length > 6) {
-        Alert.alert("Límite alcanzado", "Máximo 6 imágenes");
+  const pickImages = async () => {
+    try {
+      if (images.length >= 6) {
+        Alert.alert("Límite alcanzado", "No puedes agregar más de 6 imágenes");
         return;
       }
-      setImages((prev) => [...prev, ...newImages]);
+
+      const hasPermission = await requestPermissions();
+      if (!hasPermission) return;
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      console.log("Resultado de la selección de imágenes:", result); // Depuración
+
+      if (!result.canceled && result.assets?.length > 0) {
+        const selectedImages = result.assets.map((asset) => asset.uri);
+        const totalImages = images.length + selectedImages.length;
+
+        if (totalImages > 6) {
+          Alert.alert(
+            "Límite excedido",
+            `Solo puedes seleccionar ${
+              6 - images.length
+            } imagen(es) más. Has intentado seleccionar ${
+              selectedImages.length
+            }`
+          );
+          return;
+        }
+
+        setImages((prevImages) => [...prevImages, ...selectedImages]);
+      }
+    } catch (error) {
+      console.error("Error seleccionando imágenes:", error);
     }
+  };
+
+  const showImagePickerOptions = () => {
+    Alert.alert(
+      "Seleccionar imagen",
+      "Elige una opción",
+      [
+        { text: "Seleccionar de Galería", onPress: pickImages },
+        { text: "Tomar una foto", onPress: takePhoto },
+        { text: "Cancelar", style: "cancel" },
+      ],
+      { cancelable: true }
+    );
   };
 
   const removeImage = (index) =>
@@ -184,16 +260,55 @@ const AddSubcategoryScreen = ({ subcategoryId, onSave }) => {
 
   const handleSubmit = async () => {
     setLoader(true);
+
     try {
+      // Validación de campos obligatorios
+      if (
+        !name ||
+        !description ||
+        !location?.city ||
+        !location?.province ||
+        !phoneNumber ||
+        !whatsapp ||
+        !selectedCategory?._id ||
+        !selectedSubcategory?._id
+      ) {
+        Alert.alert("Error", "Todos los campos son obligatorios");
+        setLoader(false);
+        return;
+      }
+
+      console.log("Datos a enviar:", {
+        name,
+        description,
+        location, // Verificar que tenga city y province
+        phoneNumber,
+        whatsapp,
+        category: selectedCategory._id,
+        subcategory: selectedSubcategory._id,
+        schedule,
+        images,
+        pdf,
+      });
+
       const formData = new FormData();
+
+      // Agregar campos básicos
       formData.append("name", name);
       formData.append("description", description);
-      formData.append("location", location);
       formData.append("phoneNumber", phoneNumber);
       formData.append("whatsapp", whatsapp);
-      formData.append("category", selectedCategory);
+      formData.append("category", selectedCategory._id);
+      formData.append("subcategory", selectedSubcategory._id);
+
+      // Agregar location como objeto (no como JSON string)
+      formData.append("location[city]", location.city);
+      formData.append("location[province]", location.province);
+
+      // Agregar schedule como string JSON (si el backend lo espera así)
       formData.append("schedule", JSON.stringify(schedule));
 
+      // Agregar imágenes
       images.forEach((imageUri, index) => {
         const fileType = imageUri.split(".").pop();
         formData.append("images", {
@@ -203,39 +318,52 @@ const AddSubcategoryScreen = ({ subcategoryId, onSave }) => {
         });
       });
 
+      // Agregar PDF si existe
       if (pdf) {
         formData.append("pdf", {
           uri: pdf.uri,
-          type: "application/pdf",
-          name: "document.pdf",
+          type: pdf.mimeType || "application/pdf",
+          name: pdf.name || "document.pdf",
         });
       }
 
+      // Verificar el FormData antes de enviar (solo para depuración)
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value);
+      }
+
       const response = await axios.post(
-        `${API_BASE_URL}/subcategories/category/${selectedCategory}`,
+        `${API_BASE_URL}/menus/subcategories/category/${selectedCategory._id}`,
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
 
       if (response.status === 201) {
-        Alert.alert("Éxito", "Subcategoría creada exitosamente");
+        Alert.alert("Éxito", "Menú creado exitosamente");
+        // Resetear el formulario
         setName("");
         setDescription("");
-        setLocation("");
+        setLocation({ city: "", province: "" });
+        setSelectedLocation(null);
         setSocialMedia([""]);
         setSchedule([]);
         setPhoneNumber("");
         setWhatsapp("");
         setImages([]);
         setPdf(null);
-        setSelectedCategory("");
-        setIsActive(true);
       }
     } catch (error) {
-      console.error("Error:", error.response?.data || error.message);
+      console.error("Error completo:", error);
+      console.error("Detalles del error:", error.response?.data);
       Alert.alert(
         "Error",
-        error.response?.data?.message || "Error al crear subcategoría"
+        error.response?.data?.message ||
+          error.message ||
+          "Error al crear el menú"
       );
     } finally {
       setLoader(false);
@@ -276,14 +404,9 @@ const AddSubcategoryScreen = ({ subcategoryId, onSave }) => {
               <Ionicons name="add-circle" size={40} color="black" />
             )}
           </TouchableOpacity>
-          <FlatList
-            data={images}
-            horizontal
-            scrollEnabled={true} // Desactiva el scroll del FlatList
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(_, index) => index.toString()}
-            renderItem={({ item, index }) => (
-              <View style={styles.imageWrapper}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {images.map((item, index) => (
+              <View key={index} style={styles.imageWrapper}>
                 <Image source={{ uri: item }} style={styles.image} />
                 <TouchableOpacity
                   style={styles.removeButton}
@@ -292,9 +415,8 @@ const AddSubcategoryScreen = ({ subcategoryId, onSave }) => {
                   <Ionicons name="close-circle" size={24} color="red" />
                 </TouchableOpacity>
               </View>
-            )}
-            style={styles.imageFlatList} // Altura fija
-          />
+            ))}
+          </ScrollView>
         </View>
         <Text style={styles.infoText}>Máximo 6 imágenes</Text>
 
@@ -318,7 +440,7 @@ const AddSubcategoryScreen = ({ subcategoryId, onSave }) => {
         >
           <Text style={styles.selectButtonText}>
             {selectedLocation
-              ? `Provincia: ${selectedLocation.province.name}, Ciudad: ${selectedLocation.city.name}`
+              ? `Provincia: ${selectedLocation.province}, Ciudad: ${selectedLocation.city}`
               : "Seleccionar Provincia y Ciudad"}
           </Text>
         </TouchableOpacity>
@@ -507,7 +629,7 @@ const styles = {
     marginBottom: 20,
   },
   imageFlatList: {
-    height: 120, // Altura fija para evitar conflicto con ScrollView
+    height: 120,
     flexGrow: 0,
   },
   image: {

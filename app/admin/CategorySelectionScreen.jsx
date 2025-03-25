@@ -34,6 +34,19 @@ const CategorySelectionScreen = () => {
 
     fetchCategories();
   }, []);
+  // Manejar parámetros recibidos
+  useEffect(() => {
+    const { selectedCategory: categoryParam } = router.params || {};
+    if (categoryParam) {
+      try {
+        const parsedCategory = JSON.parse(categoryParam);
+        setSelectedCategory(parsedCategory);
+        fetchSubcategories(parsedCategory._id);
+      } catch (error) {
+        console.error("Error parsing selected category:", error);
+      }
+    }
+  }, [router.params]);
 
   // Cargar subcategorías cuando se selecciona una categoría
   useEffect(() => {

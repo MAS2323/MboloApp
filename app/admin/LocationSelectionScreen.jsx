@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import axios from "axios";
@@ -15,22 +16,29 @@ import { Ionicons } from "@expo/vector-icons";
 
 const LocationSelectionScreen = () => {
   const router = useRouter();
-  const [provinces, setProvinces] = useState([]); // Provincias (tipo "Province")
-  const [cities, setCities] = useState([]); // Ciudades (tipo "City")
-  const [selectedProvince, setSelectedProvince] = useState(null); // Provincia seleccionada
-  const [selectedCity, setSelectedCity] = useState(null); // Ciudad seleccionada
+  const [provinces, setProvinces] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [selectedProvince, setSelectedProvince] = useState(null);
+  const [selectedCity, setSelectedCity] = useState(null);
+  const [loadingProvinces, setLoadingProvinces] = useState(true);
+  const [loadingCities, setLoadingCities] = useState(false);
+  const [error, setError] = useState(null);
 
   // Cargar provincias al inicio
   useEffect(() => {
     const fetchProvinces = async () => {
       try {
+        setLoadingProvinces(true);
         const response = await axios.get(
           `${API_BASE_URL}/locations?type=Province`
         );
         setProvinces(response.data);
+        setError(null);
       } catch (error) {
         console.error("Error fetching provinces:", error);
-        Alert.alert("Error", "No se pudieron cargar las provincias.");
+        setError("No se pudieron cargar las provincias");
+      } finally {
+        setLoadingProvinces(false);
       }
     };
 
@@ -40,47 +48,77 @@ const LocationSelectionScreen = () => {
   // Cargar ciudades cuando se selecciona una provincia
   useEffect(() => {
     const fetchCities = async () => {
-      if (selectedProvince) {
-        try {
-          const response = await axios.get(
-            `${API_BASE_URL}/locations/cities/${selectedProvince._id}`
-          );
-          setCities(response.data);
-        } catch (error) {
-          console.error("Error fetching cities:", error);
-          Alert.alert("Error", "No se pudieron cargar las ciudades.");
-        }
+      if (!selectedProvince) return;
+
+      try {
+        setLoadingCities(true);
+        const response = await axios.get(
+          `${API_BASE_URL}/locations/cities/${selectedProvince._id}`
+        );
+        setCities(response.data);
+        setError(null);
+      } catch (error) {
+        console.error("Error fetching cities:", error);
+        setError("No se pudieron cargar las ciudades");
+      } finally {
+        setLoadingCities(false);
       }
     };
 
     fetchCities();
   }, [selectedProvince]);
 
-  // Manejar la selección de provincia
   const handleProvinceSelect = (province) => {
     setSelectedProvince(province);
-    setSelectedCity(null); // Limpiar la ciudad seleccionada al cambiar de provincia
+    setSelectedCity(null); // Resetear ciudad al cambiar provincia
   };
 
-  // Manejar la selección de ciudad
   const handleCitySelect = async (city) => {
-    setSelectedCity(city);
+    if (!selectedProvince) return;
 
-    // Guardar la ubicación seleccionada en AsyncStorage
     try {
+      const locationData = {
+        province: selectedProvince.name,
+        provinceId: selectedProvince._id,
+        city: city.name,
+        cityId: city._id,
+      };
+
       await AsyncStorage.setItem(
         "selectedLocation",
-        JSON.stringify({
-          province: selectedProvince,
-          city: city,
-        })
+        JSON.stringify(locationData)
       );
-      router.back(); // Regresar a la pantalla anterior
+
+      // Regresar a la pantalla anterior con los datos seleccionados
+      router.back();
     } catch (error) {
       console.error("Error saving location:", error);
-      Alert.alert("Error", "No se pudo guardar la ubicación.");
+      Alert.alert("Error", "No se pudo guardar la ubicación");
     }
   };
+
+  if (loadingProvinces) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" />
+        <Text>Cargando provincias...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.retryButtonText}>Volver</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -108,8 +146,13 @@ const LocationSelectionScreen = () => {
 
       {selectedProvince && (
         <>
-          <Text style={styles.title}>Selecciona una Ciudad</Text>
-          {cities.length > 0 ? (
+          <Text style={styles.title}>Ciudades de {selectedProvince.name}</Text>
+          {loadingCities ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" />
+              <Text>Cargando ciudades...</Text>
+            </View>
+          ) : cities.length > 0 ? (
             <FlatList
               data={cities}
               keyExtractor={(item) => item._id}
@@ -148,6 +191,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: "center",
+  },
   title: {
     fontSize: 18,
     fontWeight: "bold",
@@ -182,6 +235,20 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#e0e0e0",
     marginHorizontal: 16,
+  },
+  errorText: {
+    color: "red",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  retryButton: {
+    backgroundColor: "#007AFF",
+    padding: 10,
+    borderRadius: 5,
+  },
+  retryButtonText: {
+    color: "white",
+    fontWeight: "bold",
   },
 });
 
