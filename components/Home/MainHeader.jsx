@@ -119,9 +119,13 @@ function MainHeader() {
         overScrollMode="always"
         bounces={true}
         nestedScrollEnabled={true}
+        snapToAlignment="start" // Esto hace que el scroll se detenga al inicio de cada sección
+        snapToInterval={200} // Altura aproximada de tus secciones (ajusta según necesidad)
+        decelerationRate="normal" // Hace que el scroll se detenga más rápido
         // Mantener el scroll position
         maintainVisibleContentPosition={{
           minIndexForVisible: 0,
+          autoscrollToTopThreshold: 0,
         }}
         onScroll={(event) => {
           scrollPosition.current = event.nativeEvent.contentOffset.y;

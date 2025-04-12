@@ -19,6 +19,7 @@ export default function Layout() {
         <Stack.Screen name="UpdateProfile" />
         <Stack.Screen name="SearchTile" />
         <Stack.Screen name="ProductEdition" />
+        <Stack.Screen name="tendenciaGalleryScreen" />
         {/* Otras rutas */}
       </Stack>
     </GestureHandlerRootView>

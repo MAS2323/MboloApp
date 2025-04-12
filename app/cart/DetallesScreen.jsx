@@ -8,20 +8,29 @@ import {
   Linking,
   Dimensions,
   FlatList,
-  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES } from "./../../constants/theme";
 import TendenciasScreen from "./../../components/Home/TendenciaScreen";
-import { ScrollView } from "react-native-gesture-handler";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 const { width } = Dimensions.get("window");
+
 const DetallesScreen = () => {
+  const router = useRouter();
   const { item } = useLocalSearchParams();
   const subcategory = item ? JSON.parse(item) : null;
-  const images = subcategory.images || [];
-  const [selectedImage, setSelectedImage] = useState(null); // Estado para la imagen seleccionada
+  const images = subcategory?.images || [];
+
+  const handleImagePress = (index) => {
+    router.push({
+      pathname: "/cart/tendenciaGalleryScreen",
+      params: {
+        images: JSON.stringify(images),
+        index: index.toString(),
+      },
+    });
+  };
 
   const handleCall = (phoneNumber) => {
     Linking.openURL(`tel:${phoneNumber}`);
@@ -43,14 +52,14 @@ const DetallesScreen = () => {
     <View style={styles.container}>
       <View style={styles.card}>
         <View style={styles.imageContainer}>
-          {/* FlatList para imágenes con scroll horizontal */}
           <FlatList
             horizontal
             data={images}
             keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item }) => (
+            renderItem={({ item, index }) => (
               <TouchableOpacity
-                onPress={() => setSelectedImage(item.url)} // Al hacer clic, guardar la URL de la imagen
+                onPress={() => handleImagePress(index)}
+                activeOpacity={0.8}
               >
                 <Image
                   source={{
@@ -63,29 +72,8 @@ const DetallesScreen = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.imageList}
           />
-
-          {/* Modal para mostrar la imagen en tamaño completo */}
-          <Modal
-            visible={!!selectedImage} // Mostrar el modal si hay una imagen seleccionada
-            transparent={true}
-            onRequestClose={() => setSelectedImage(null)} // Cerrar el modal al presionar el botón de retroceso
-          >
-            <View style={styles.modalContainer}>
-              <TouchableOpacity
-                style={styles.modalBackground}
-                onPress={() => setSelectedImage(null)} // Cerrar el modal al tocar fuera de la imagen
-              >
-                <Image
-                  source={{
-                    uri: selectedImage || "https://via.placeholder.com/150",
-                  }}
-                  style={styles.fullImage}
-                  resizeMode="contain"
-                />
-              </TouchableOpacity>
-            </View>
-          </Modal>
         </View>
+
         <View style={styles.details}>
           <Text style={styles.title}>{subcategory.name || "Producto"}</Text>
           <Text style={styles.supplier}>
@@ -111,7 +99,7 @@ const DetallesScreen = () => {
         </View>
       </View>
       <FlatList
-        data={[{}]} // Necesario para que FlatList renderice un solo elemento
+        data={[{}]}
         keyExtractor={(_, index) => index.toString()}
         renderItem={() => <TendenciasScreen />}
       />

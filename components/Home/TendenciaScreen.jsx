@@ -8,7 +8,7 @@ import {
   FlatList,
   Linking,
 } from "react-native";
-import { MaterialIcons, AntDesign } from "@expo/vector-icons";
+import { MaterialIcons, AntDesign, Entypo, Feather } from "@expo/vector-icons";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "../../config/Service.Config";
@@ -24,7 +24,6 @@ const shuffleArray = (array) => {
 
 const TendenciasScreen = () => {
   const [subcategories, setSubcategories] = useState([]);
-  const [favorites, setFavorites] = useState([]);
   const [userId, setUserId] = useState(null);
   const router = useRouter();
 
@@ -74,29 +73,6 @@ const TendenciasScreen = () => {
     Linking.openURL(`https://wa.me/${phoneNumber}`);
   };
 
-  const handleFavoritePress = async (item) => {
-    try {
-      const newFavorites = [...favorites];
-      const index = newFavorites.findIndex((fav) => fav._id === item._id);
-
-      if (index > -1) {
-        newFavorites.splice(index, 1); // Remove from favorites
-        await axios.delete(`${API_BASE_URL}/favorites/${userId}/${item._id}`);
-      } else {
-        newFavorites.push(item); // Add to favorites
-        await axios.post(`${API_BASE_URL}/favorites/${userId}/${item._id}`, {
-          userId: userId,
-          subcategoryId: item._id,
-        });
-      }
-
-      setFavorites(newFavorites);
-    } catch (error) {
-      console.error("Error updating favorites:", error);
-      setFavorites([...favorites]);
-    }
-  };
-
   const renderItem = ({ item }) => (
     <View key={item._id}>
       <TouchableOpacity style={styles.card} onPress={() => handlePress(item)}>
@@ -109,23 +85,11 @@ const TendenciasScreen = () => {
         <View style={styles.infoContainer}>
           <View style={styles.locationContainer}>
             <Text style={styles.location}>
-              {" "}
+              <Entypo name="location" size={24} color="#4c86A8" />{" "}
               {item.location
                 ? `${item.location.city}, ${item.location.province}`
                 : "N/A"}
             </Text>
-            <TouchableOpacity onPress={() => handleFavoritePress(item)}>
-              <AntDesign
-                name={
-                  favorites.some((fav) => fav._id === item._id)
-                    ? "heart"
-                    : "hearto"
-                }
-                size={24}
-                color="red"
-                style={styles.heartIcon}
-              />
-            </TouchableOpacity>
           </View>
           <Text style={styles.price}>Precio: ${item.price || "N/A"}</Text>
           <Text style={styles.description}>
@@ -145,7 +109,7 @@ const TendenciasScreen = () => {
               <MaterialIcons
                 name="call"
                 size={24}
-                color="#007AFF"
+                color="#4c86A8"
                 style={styles.callIcon}
               />
             </TouchableOpacity>
@@ -157,7 +121,10 @@ const TendenciasScreen = () => {
   );
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Tendencias</Text>
+      <View style={styles.titleContainer}>
+        <Text style={styles.title}>Tendencias</Text>
+        <Feather name="trending-up" size={27} color="#4c86A8" />
+      </View>
       <FlatList
         data={subcategories}
         keyExtractor={(item) => item._id}
@@ -210,7 +177,13 @@ const styles = StyleSheet.create({
   },
   location: {
     fontSize: 16,
-    fontWeight: "bold",
+    // fontWeight: "bold",
+  },
+  titleContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    margin: 10,
   },
   price: {
     fontSize: 16,
@@ -249,9 +222,9 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   callIcon: {
-    color: "#000000",
+    color: "#4c86A8",
     borderWidth: 1,
-    borderColor: "#000000",
+    borderColor: "#4c86A8",
     borderRadius: 50,
     padding: 4,
     marginRight: 5,
