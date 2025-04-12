@@ -48,7 +48,7 @@ const TendenciasScreen = () => {
   useEffect(() => {
     const fetchSubcategories = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/menu`);
+        const response = await axios.get(`${API_BASE_URL}/menus`);
         const shuffledSubcategories = shuffleArray(response.data);
         setSubcategories(shuffledSubcategories);
       } catch (error) {
@@ -109,7 +109,10 @@ const TendenciasScreen = () => {
         <View style={styles.infoContainer}>
           <View style={styles.locationContainer}>
             <Text style={styles.location}>
-              Ubicación: {item.location || "N/A"}
+              {" "}
+              {item.location
+                ? `${item.location.city}, ${item.location.province}`
+                : "N/A"}
             </Text>
             <TouchableOpacity onPress={() => handleFavoritePress(item)}>
               <AntDesign
@@ -120,6 +123,7 @@ const TendenciasScreen = () => {
                 }
                 size={24}
                 color="red"
+                style={styles.heartIcon}
               />
             </TouchableOpacity>
           </View>
@@ -148,9 +152,9 @@ const TendenciasScreen = () => {
           </View>
         </View>
       </TouchableOpacity>
+      <View style={styles.separator} />
     </View>
   );
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Tendencias</Text>
@@ -158,7 +162,7 @@ const TendenciasScreen = () => {
         data={subcategories}
         keyExtractor={(item) => item._id}
         renderItem={renderItem}
-        // contentContainerStyle={styles.listContainer}
+        contentContainerStyle={styles.listContainer}
         nestedScrollEnabled={true}
       />
     </View>
@@ -168,20 +172,26 @@ const TendenciasScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "#f9f9f9",
+    padding: 2,
+    // backgroundColor: "#f9f9f9",
+  },
+  listContainer: {
+    paddingHorizontal: 15,
+  },
+  itemContainer: {
+    marginBottom: 0,
   },
   card: {
     flexDirection: "row",
     backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 10,
-    marginVertical: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+    paddingVertical: 15,
+    paddingHorizontal: 0,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: "#e0e0e0",
+    marginVertical: 0,
+    marginHorizontal: 0,
   },
   image: {
     width: 100,
@@ -243,13 +253,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#000000",
     borderRadius: 50,
-    padding: 5,
+    padding: 4,
+    marginRight: 5,
   },
   IconButton: {
-    backgroundColor: "#4c86A8",
+    // backgroundColor: "#4c86A8",
     borderRadius: 5,
     paddingVertical: 5,
     paddingHorizontal: 10,
+  },
+  heartIcon: {
+    marginRight: 20,
+    color: "red",
   },
 });
 export default TendenciasScreen;
