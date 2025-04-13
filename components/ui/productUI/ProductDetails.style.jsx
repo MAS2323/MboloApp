@@ -4,7 +4,7 @@ import { COLORS, SIZES } from "./../../../constants/theme";
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.lightwhite,
+    // backgroundColor: COLORS.lightwhite,
     marginTop: 25,
   },
   upperRow: {

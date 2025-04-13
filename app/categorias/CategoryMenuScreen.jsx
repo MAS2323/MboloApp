@@ -78,16 +78,16 @@ const styles = StyleSheet.create({
   appBarWrapper: {
     paddingTop: 40, // Espaciado superior para evitar que el título quede muy arriba
     paddingBottom: 15, // Espaciado inferior
-    backgroundColor: "#fff", // Fondo blanco
+    backgroundColor: "#4c86A8", // Fondo blanco
     borderBottomWidth: 1, // Línea inferior para separar el header
     borderBottomColor: "#e0e0e0", // Color de la línea
     justifyContent: "center", // Centrar verticalmente
     alignItems: "center", // Centrar horizontalmente
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
-    color: "#333", // Color de texto más oscuro
+    color: "#fff", // Color de texto más oscuro
   },
   flatList: {
     flex: 1, // Ocupa todo el espacio disponible

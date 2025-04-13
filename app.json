@@ -14,7 +14,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon2.png",
-        "backgroundColor": "#4c86A8"
+        "backgroundColor": "#ffffff"
       },
       "package": "com.masthemas.MboloApp",
       "versionCode": 1
@@ -32,7 +32,7 @@
           "image": "./assets/images/icon2.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#4c86A8"
+          "backgroundColor": "#ffffff"
         }
       ]
     ],

@@ -463,7 +463,7 @@ export default function AddScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    // backgroundColor: "#f5f5f5",
   },
   header: {
     flexDirection: "row",
@@ -471,10 +471,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: "#fff",
+    // backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
-    marginTop: 30,
+    // marginTop: 30,
   },
   location: {
     fontSize: 18,

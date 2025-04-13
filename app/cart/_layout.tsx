@@ -14,8 +14,28 @@ export default function Layout() {
         <Stack.Screen name="ProductDetails" />
         <Stack.Screen name="ProductList" />
         <Stack.Screen name="SearchScreen" />
-        <Stack.Screen name="SobreNosotrosScreen" />
-        <Stack.Screen name="ArchivoScreen" />
+        <Stack.Screen
+          name="SobreNosotrosScreen"
+          options={{
+            headerShown: true,
+            title: "Sobre MboloApp",
+            headerTitleAlign: "center",
+            headerTintColor: "#fff",
+            headerStyle: { backgroundColor: "#4c86A8" },
+            headerTitleStyle: { fontSize: 20 },
+          }}
+        />
+        <Stack.Screen
+          name="ArchivoScreen"
+          options={{
+            headerShown: true,
+            title: "Productos subidos",
+            headerTitleAlign: "center",
+            headerTintColor: "#fff",
+            headerStyle: { backgroundColor: "#4c86A8" },
+            headerTitleStyle: { fontSize: 20 },
+          }}
+        />
         <Stack.Screen name="UpdateProfile" />
         <Stack.Screen name="SearchTile" />
         <Stack.Screen name="ProductEdition" />

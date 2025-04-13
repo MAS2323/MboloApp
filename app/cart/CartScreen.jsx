@@ -9,6 +9,8 @@ import {
   Alert,
   RefreshControl,
   Linking,
+  ActivityIndicator,
+  SafeAreaView,
 } from "react-native";
 import axios from "axios";
 import { getCachedData, setCachedData } from "./../../components/Home/Cache";
@@ -18,12 +20,19 @@ import { API_BASE_URL } from "./../../config/Service.Config";
 import { useRouter } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
+// ======================================================
+// Main Component
+// ======================================================
 const CartScreen = () => {
   const [userId, setUserId] = useState(null);
   const [cart, setCart] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // ======================================================
+  // User ID Functions
+  // ======================================================
   const fetchUserId = useCallback(async () => {
     try {
       const id = await AsyncStorage.getItem("id");
@@ -34,15 +43,20 @@ const CartScreen = () => {
     }
   }, []);
 
+  // ======================================================
+  // Cart Functions
+  // ======================================================
   const fetchCart = useCallback(async () => {
     try {
+      setLoading(true);
       if (!userId) return;
+
       const response = await axios.get(`${API_BASE_URL}/cart/${userId}`);
 
       if (response.status === 200) {
         const cartData = response.data;
         setCart(cartData);
-        setCachedData(`cart_${userId}`, cartData); // Actualiza la cache
+        setCachedData(`cart_${userId}`, cartData);
       } else {
         console.error("Failed to fetch cart, status:", response.status);
       }
@@ -51,32 +65,58 @@ const CartScreen = () => {
       if (error.response) {
         console.error("Server response:", error.response.data);
       }
+    } finally {
+      setLoading(false);
     }
   }, [userId]);
 
   const handleRemoveItem = async (cartItemId) => {
     try {
-      console.log("Deleting item from cart:", userId, cartItemId);
-      await axios.delete(`${API_BASE_URL}/cart/${userId}/${cartItemId}`);
+      Alert.alert(
+        "Eliminar producto",
+        "¿Estás seguro de que quieres eliminar este producto del carrito?",
+        [
+          {
+            text: "Cancelar",
+            style: "cancel",
+          },
+          {
+            text: "Eliminar",
+            onPress: async () => {
+              await axios.delete(
+                `${API_BASE_URL}/cart/${userId}/${cartItemId}`
+              );
 
-      // Actualiza el estado local y el caché después de la eliminación
-      const updatedCartProducts = cart.products.filter(
-        (item) => item._id !== cartItemId
+              const updatedCartProducts = cart.products.filter(
+                (item) => item._id !== cartItemId
+              );
+              const updatedCart = { ...cart, products: updatedCartProducts };
+
+              setCart(updatedCart);
+              setCachedData(`cart_${userId}`, updatedCart);
+
+              Alert.alert(
+                "Producto eliminado",
+                "El artículo ha sido eliminado del carrito."
+              );
+            },
+          },
+        ]
       );
-      const updatedCart = { ...cart, products: updatedCartProducts };
-
-      setCart(updatedCart);
-      setCachedData(`cart_${userId}`, updatedCart);
-
-      // Muestra un mensaje de éxito al usuario
-      Alert.alert("El artículo ha sido eliminado del carrito.");
     } catch (error) {
       console.error("Error al eliminar el artículo del carrito:", error);
-      // Maneja el error según sea necesario
+      Alert.alert("Error", "No se pudo eliminar el producto del carrito");
     }
   };
 
+  // ======================================================
+  // Utility Functions
+  // ======================================================
   const handleWhatsApp = (phoneNumber) => {
+    if (!phoneNumber) {
+      Alert.alert("Error", "Número de WhatsApp no disponible");
+      return;
+    }
     Linking.openURL(`https://wa.me/${phoneNumber}`);
   };
 
@@ -86,106 +126,199 @@ const CartScreen = () => {
     setRefreshing(false);
   }, [fetchCart]);
 
+  // ======================================================
+  // Effects
+  // ======================================================
   useEffect(() => {
     fetchUserId();
   }, [fetchUserId]);
 
   useEffect(() => {
-    fetchCart();
-  }, [fetchCart]);
+    if (userId) {
+      fetchCart();
+    }
+  }, [userId, fetchCart]);
 
-  if (!cart) {
-    return <Text>Cargando...</Text>;
+  // ======================================================
+  // Loading State
+  // ======================================================
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4c86A8" />
+        <Text style={styles.loadingText}>Cargando tu carrito...</Text>
+      </SafeAreaView>
+    );
   }
 
+  // ======================================================
+  // Main Render
+  // ======================================================
   return (
-    <ScrollView
-      style={[styles.container, { marginTop: 32 }]}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-      }
-    >
-      {cart.products && cart.products.length === 0 ? (
-        <Text style={styles.emptyCartText}>
-          Aún no has agregado nada al carrito
-        </Text>
-      ) : (
-        cart.products.map((product) => {
-          console.log("Product images:", product.images); // Depuración: Verifica las imágenes de cada producto
-          return (
-            <View key={product._id} style={styles.card}>
-              {product.images &&
-              product.images.length > 0 &&
-              product.images[0].url ? (
-                <Image
-                  source={{ uri: product.images[0].url }} // Accede a la primera imagen
-                  style={styles.image}
-                  onError={(e) => {
-                    console.error("Error loading image:", e.nativeEvent.error);
-                  }}
-                />
-              ) : (
-                <View style={styles.imagePlaceholder}>
-                  <Text>No hay imagen disponible</Text>
-                </View>
-              )}
-              <View style={styles.infoContainer}>
-                <Text style={styles.title}>{product.title}</Text>
-                <Text style={styles.supplier}>
-                  Supplier: {product.supplier}
-                </Text>
-                <Text style={styles.price}>XAF{product.price}</Text>
-
-                {/* Botones para WhatsApp y eliminar */}
-                <View style={styles.actionContainer}>
-                  <TouchableOpacity
-                    style={styles.whatsappButton}
-                    onPress={() => handleWhatsApp(product.whatsapp)}
-                  >
-                    <Text style={styles.whatsappText}>WhatsApp</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleRemoveItem(product._id)}
-                  >
-                    <MaterialIcons name="delete" size={24} color="red" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          );
-        })
-      )}
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => router.push("/cart/ProductList")}
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
+        style={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={["#4c86A8"]}
+            tintColor="#4c86A8"
+          />
+        }
       >
-        <FontAwesome name="shopping-cart" size={30} color="white" />
-        <Text style={styles.text}>Añadir al carrito</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        {cart?.products?.length === 0 ? (
+          // ======================================================
+          // Empty Cart State
+          // ======================================================
+          <View style={styles.emptyContainer}>
+            <Image
+              source={require("../../assets/images/carrito.jpeg")}
+              style={styles.emptyImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.emptyTitle}>Tu carrito está vacío</Text>
+            <Text style={styles.emptyText}>
+              Añade productos para verlos aquí
+            </Text>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => router.push("/cart/ProductList")}
+            >
+              <FontAwesome name="shopping-cart" size={20} color="white" />
+              <Text style={styles.addButtonText}>Explorar productos</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <Text style={styles.sectionTitle}>
+              Tus productos ({cart?.products?.length || 0})
+            </Text>
+
+            {/* ======================================================
+                Product List
+            ====================================================== */}
+            {cart?.products?.map((product) => (
+              <View key={product._id}>
+                <View style={styles.card}>
+                  {product.images?.[0]?.url ? (
+                    <Image
+                      source={{ uri: product.images[0].url }}
+                      style={styles.image}
+                      onError={(e) =>
+                        console.error(
+                          "Error loading image:",
+                          e.nativeEvent.error
+                        )
+                      }
+                    />
+                  ) : (
+                    <View style={styles.imagePlaceholder}>
+                      <MaterialIcons
+                        name="image-not-supported"
+                        size={40}
+                        color="#ccc"
+                      />
+                    </View>
+                  )}
+                  <View style={styles.infoContainer}>
+                    <Text style={styles.title} numberOfLines={2}>
+                      {product.title}
+                    </Text>
+                    <Text style={styles.supplier} numberOfLines={1}>
+                      {product.supplier || "Proveedor no disponible"}
+                    </Text>
+                    <Text style={styles.price}>
+                      XAF {product.price?.toLocaleString() || "0"}
+                    </Text>
+
+                    <View style={styles.actionContainer}>
+                      <TouchableOpacity
+                        style={styles.whatsappButton}
+                        onPress={() => handleWhatsApp(product.whatsapp)}
+                      >
+                        <FontAwesome name="whatsapp" size={16} color="white" />
+                        <Text style={styles.whatsappText}> Contactar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleRemoveItem(product._id)}
+                        style={styles.deleteButton}
+                      >
+                        <MaterialIcons
+                          name="delete-outline"
+                          size={24}
+                          color="#ff4444"
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+                <View style={styles.separator} />
+              </View>
+            ))}
+          </>
+        )}
+
+        {/* ======================================================
+            Checkout Button
+        ====================================================== */}
+        {cart?.products?.length > 0 && (
+          <TouchableOpacity
+            style={styles.checkoutButton}
+            onPress={() => router.push("/cart/ProductList")}
+          >
+            <FontAwesome name="plus" size={20} color="white" />
+            <Text style={styles.checkoutText}>Añadir más productos</Text>
+          </TouchableOpacity>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 export default CartScreen;
 
+// ======================================================
+// Styles
+// ======================================================
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    padding: 2,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f9f9f9",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#4c86A8",
+  },
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "#f9f9f9",
+    padding: 2,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 16,
+    marginLeft: 8,
   },
   card: {
     flexDirection: "row",
     backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 10,
-    marginVertical: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-    alignItems: "center",
+    paddingVertical: 15,
+    paddingHorizontal: 0,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: "#e0e0e0",
+    marginVertical: 0,
+    marginHorizontal: 0,
   },
   image: {
     width: 100,
@@ -195,65 +328,112 @@ const styles = StyleSheet.create({
   imagePlaceholder: {
     width: 100,
     height: 100,
-    borderRadius: 10,
-    backgroundColor: "#e1e1e1",
+    borderRadius: 8,
+    backgroundColor: "#f0f0f0",
     justifyContent: "center",
     alignItems: "center",
   },
   infoContainer: {
     flex: 1,
-    marginLeft: 10,
+    marginLeft: 12,
     justifyContent: "space-between",
   },
   title: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 4,
   },
   supplier: {
     fontSize: 14,
     color: "#666",
+    marginBottom: 4,
   },
   price: {
     fontSize: 16,
-    color: "#FF6347",
+    fontWeight: "700",
+    color: "#4c86A8",
+    marginBottom: 8,
   },
   actionContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginTop: 10,
-    width: 100, // Ajusta el tamaño según sea necesario
-  },
-  button: {
-    backgroundColor: "#4c86A8",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    flexDirection: "row", // Alinear elementos horizontalmente
-    alignItems: "center", // Centrar verticalmente
-    justifyContent: "center",
-    marginVertical: 20,
-  },
-  text: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginLeft: 10, // Espacio entre el icono y el texto
-  },
-  emptyCartText: {
-    textAlign: "center",
-    marginTop: 20,
-    fontSize: 18,
-    color: "#666",
+    alignItems: "center",
+    marginTop: 8,
   },
   whatsappButton: {
     backgroundColor: "#25D366",
-    borderRadius: 5,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: 8,
+    justifyContent: "center",
   },
   whatsappText: {
     color: "#fff",
     fontSize: 14,
+    fontWeight: "500",
+    marginLeft: 4,
+  },
+  deleteButton: {
+    padding: 8,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  emptyImage: {
+    width: 200,
+    height: 200,
+    marginBottom: 24,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#666",
+    marginBottom: 24,
+    textAlign: "center",
+    paddingHorizontal: 40,
+  },
+  addButton: {
+    backgroundColor: "#4c86A8",
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "500",
+    marginLeft: 8,
+  },
+  checkoutButton: {
+    backgroundColor: "#4c86A8",
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: 30,
+  },
+  checkoutText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
   },
 });
