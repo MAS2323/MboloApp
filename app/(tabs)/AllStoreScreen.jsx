@@ -6,23 +6,25 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Image,
-  Dimensions,
+  useWindowDimensions,
+  ScrollView,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { router } from "expo-router";
 import { API_BASE_URL } from "../../config/Service.Config";
 import axios from "axios";
 
-// Get the screen width for calculating item width
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const NUM_COLUMNS = 2;
-const ITEM_MARGIN = 5; // Margin on each side of the item
-const TOTAL_HORIZONTAL_MARGIN = ITEM_MARGIN * 2 * NUM_COLUMNS + 10; // Margins + listContainer paddingHorizontal
-const ITEM_WIDTH = (SCREEN_WIDTH - TOTAL_HORIZONTAL_MARGIN) / NUM_COLUMNS;
-
 const AllStoreScreen = () => {
   const [tiendas, setTiendas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("Recomendado");
+  const { width } = useWindowDimensions();
+
+  // Calcular dimensiones responsive
+  const NUM_COLUMNS = width < 600 ? 2 : 3; // 2 columnas en móvil, 3 en tablet
+  const ITEM_MARGIN = width * 0.01; // Margen responsive (1% del ancho de pantalla)
+  const ITEM_WIDTH =
+    (width - ITEM_MARGIN * (NUM_COLUMNS * 2 + 2)) / NUM_COLUMNS;
 
   useEffect(() => {
     const fetchTiendas = async () => {
@@ -43,17 +45,10 @@ const AllStoreScreen = () => {
         }
 
         setTiendas(data);
-        setLoading(false);
       } catch (error) {
         console.error("Error fetching stores:", error.message);
-        if (error.response) {
-          console.error("Response data:", error.response.data);
-          console.error("Response status:", error.response.status);
-        } else if (error.request) {
-          console.error("No response received:", error.request);
-        } else {
-          console.error("Error setting up request:", error.message);
-        }
+        Alert.alert("Error", "No se pudieron cargar las tiendas");
+      } finally {
         setLoading(false);
       }
     };
@@ -63,23 +58,22 @@ const AllStoreScreen = () => {
 
   const renderTiendaItem = ({ item }) => (
     <TouchableOpacity
-      style={[styles.tiendaItem, { width: ITEM_WIDTH }]} // Set fixed width
+      style={[styles.tiendaItem, { width: ITEM_WIDTH, margin: ITEM_MARGIN }]}
       onPress={() => router.push(`/tienda-detalle/${item._id}`)}
     >
-      {/* Banner Image */}
       <Image
-        source={{ uri: item.banner?.url }} // Updated to access item.banner.url
+        source={{ uri: item.banner?.url }}
         style={styles.tiendaBanner}
         resizeMode="cover"
       />
-      {/* Store Name */}
-      <Text style={styles.tiendaNombre} numberOfLines={2}>
-        {item.name}
-      </Text>
-      {/* Store Description */}
-      <Text style={styles.tiendaDescripcion} numberOfLines={2}>
-        {item.description}
-      </Text>
+      <View style={styles.tiendaInfo}>
+        <Text style={styles.tiendaNombre} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={styles.tiendaDescripcion} numberOfLines={2}>
+          {item.description}
+        </Text>
+      </View>
     </TouchableOpacity>
   );
 
@@ -91,29 +85,50 @@ const AllStoreScreen = () => {
     );
   }
 
+  const tabs = ["Recomendado", "Amigos", "Global"];
+
   return (
     <View style={styles.container}>
-      {/* Menú de navegación */}
-      <View style={styles.menuNav}>
-        <TouchableOpacity style={styles.menuItemActive}>
-          <Text style={styles.menuItemTextActive}>Recomendado</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuItemText}>Amigos</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuItemText}>Global</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Menú de navegación responsive */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.menuNavContainer}
+      >
+        {tabs.map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            style={[
+              styles.menuItem,
+              activeTab === tab && styles.menuItemActive,
+            ]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text
+              style={[
+                styles.menuItemText,
+                activeTab === tab && styles.menuItemTextActive,
+              ]}
+            >
+              {tab}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
-      {/* Lista de tiendas en 2 columnas */}
+      {/* Lista de tiendas responsive */}
       <FlatList
         data={tiendas}
         renderItem={renderTiendaItem}
         keyExtractor={(item) => item._id}
-        numColumns={NUM_COLUMNS} // Two-column layout
+        numColumns={NUM_COLUMNS}
         contentContainerStyle={styles.listContainer}
-        columnWrapperStyle={styles.columnWrapper} // Updated to align items to the start
+        columnWrapperStyle={{ justifyContent: "flex-start" }}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No hay tiendas disponibles</Text>
+          </View>
+        }
       />
     </View>
   );
@@ -129,22 +144,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  menuNav: {
-    flexDirection: "row",
+  menuNavContainer: {
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
     backgroundColor: "#fff",
+    minWidth: "100%",
   },
   menuItem: {
-    flex: 1,
-    alignItems: "center",
+    paddingHorizontal: 20,
     paddingVertical: 8,
+    marginHorizontal: 5,
   },
   menuItemActive: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 8,
     borderBottomWidth: 2,
     borderBottomColor: "#4c86A8",
   },
@@ -158,30 +170,22 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   listContainer: {
-    paddingHorizontal: 5,
-    paddingVertical: 10,
-  },
-  columnWrapper: {
-    justifyContent: "flex-start", // Align items to the start instead of space-between
-    marginBottom: 5,
+    padding: 5,
   },
   tiendaItem: {
-    margin: ITEM_MARGIN, // Margin on all sides
-    padding: 10,
     backgroundColor: "#DDF0FF99",
     borderRadius: 8,
-    height: 200, // Fixed height
-    // shadowColor: "#000",
-    // shadowOffset: { width: 0, height: 2 },
-    // shadowOpacity: 0.1,
-    // shadowRadius: 4,
-    // elevation: 3,
+    overflow: "hidden",
+    height: 200,
   },
   tiendaBanner: {
     width: "100%",
-    height: 100,
-    borderRadius: 8,
-    marginBottom: 8,
+    height: "70%",
+  },
+  tiendaInfo: {
+    padding: 10,
+    height: "30%",
+    justifyContent: "center",
   },
   tiendaNombre: {
     fontSize: 14,
@@ -191,6 +195,16 @@ const styles = StyleSheet.create({
   },
   tiendaDescripcion: {
     fontSize: 12,
+    color: "#666",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 16,
     color: "#666",
   },
 });

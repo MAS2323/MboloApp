@@ -7,13 +7,14 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
-  StyleSheet,
+  useWindowDimensions,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import axios from "axios";
 import { COLORS, SIZES } from "../../constants/theme";
 import ProductCardView from "../../components/Producs/ProductCardView";
 import { API_BASE_URL } from "../../config/Service.Config";
+import styles from "./styles/ProducListCategory.styles"; // Importamos los estilos desde archivo separado
 
 const ProducListCategory = () => {
   const { categoryId } = useLocalSearchParams();
@@ -21,6 +22,13 @@ const ProducListCategory = () => {
   const [subcategorias, setSubcategorias] = useState([]);
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { width } = useWindowDimensions();
+
+  // Configuración responsive
+  const isLargeScreen = width >= 768;
+  const numColumns = isLargeScreen ? 3 : 2;
+  const productMargin = isLargeScreen ? SIZES.medium : SIZES.small;
+  const subcategoryPadding = isLargeScreen ? SIZES.large : SIZES.medium;
 
   // Obtener subcategorías de la categoría seleccionada
   useEffect(() => {
@@ -38,6 +46,8 @@ const ProducListCategory = () => {
       } catch (error) {
         console.error("Error fetching subcategories:", error);
         Alert.alert("Error", "No se pudieron cargar las subcategorías.");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -49,14 +59,14 @@ const ProducListCategory = () => {
   // Obtener productos filtrados por categoría y subcategoría
   useEffect(() => {
     const fetchProducts = async () => {
-      if (!subcategoryId) return; // No hacer la solicitud si no hay subcategoría seleccionada
+      if (!subcategoryId) return;
 
       try {
         setIsLoading(true);
         const response = await axios.get(
           `${API_BASE_URL}/products/filter/products?category=${categoryId}&subcategory=${subcategoryId}`
         );
-        setProducts(response.data.products || []); // Asegúrate de que sea un array
+        setProducts(response.data.products || []);
       } catch (error) {
         console.error("Error fetching products:", error);
         Alert.alert("Error", "No se pudieron cargar los productos.");
@@ -66,9 +76,9 @@ const ProducListCategory = () => {
     };
 
     fetchProducts();
-  }, [subcategoryId]);
+  }, [subcategoryId, categoryId]);
 
-  if (isLoading) {
+  if (isLoading && !subcategoryId) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -79,14 +89,28 @@ const ProducListCategory = () => {
   return (
     <View style={styles.container}>
       {/* Barra de subcategorías */}
-      <View style={styles.appBarWrapper}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <View
+        style={[
+          styles.appBarWrapper,
+          { paddingHorizontal: isLargeScreen ? SIZES.large : SIZES.small },
+        ]}
+      >
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.subcategoryListContainer}
+        >
           {subcategorias.map((subcategory) => (
             <TouchableOpacity
               key={subcategory._id}
               style={[
                 styles.subcategoryButton,
                 subcategoryId === subcategory._id && styles.selectedSubcategory,
+                {
+                  paddingHorizontal: subcategoryPadding
+                    ? SIZES.large
+                    : SIZES.medium,
+                },
               ]}
               onPress={() => setSubcategoryId(subcategory._id)}
             >
@@ -96,6 +120,9 @@ const ProducListCategory = () => {
                   subcategoryId === subcategory._id &&
                     styles.selectedSubcategoryText,
                 ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
               >
                 {subcategory.name}
               </Text>
@@ -105,65 +132,51 @@ const ProducListCategory = () => {
       </View>
 
       {/* Lista de productos */}
-      <FlatList
-        data={products}
-        numColumns={2}
-        renderItem={({ item }) => {
-          return <ProductCardView item={item} />;
-        }}
-        keyExtractor={(item) => item._id}
-        contentContainerStyle={styles.flatListContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        showsVerticalScrollIndicator={false}
-      />
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={products}
+          numColumns={numColumns}
+          renderItem={({ item }) => (
+            <View
+              style={{
+                flex: 1 / numColumns,
+                margin: productMargin,
+                maxWidth: isLargeScreen ? "33.33%" : "50%",
+              }}
+            >
+              <ProductCardView
+                item={item}
+                cardStyle={{
+                  height: isLargeScreen ? 280 : 220,
+                  borderRadius: isLargeScreen ? SIZES.medium : SIZES.small,
+                }}
+              />
+            </View>
+          )}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={[
+            styles.flatListContent,
+            { paddingHorizontal: isLargeScreen ? SIZES.large : SIZES.small },
+          ]}
+          ItemSeparatorComponent={() => (
+            <View style={{ height: productMargin }} />
+          )}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                No hay productos disponibles en esta subcategoría
+              </Text>
+            </View>
+          }
+        />
+      )}
     </View>
   );
 };
 
 export default ProducListCategory;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    // backgroundColor: COLORS.lightwhite,
-    marginTop: 40,
-  },
-  appBarWrapper: {
-    paddingHorizontal: SIZES.medium,
-    paddingVertical: SIZES.small,
-    // backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.lightGray,
-  },
-  subcategoryButton: {
-    paddingHorizontal: SIZES.medium,
-    paddingVertical: SIZES.small,
-    marginRight: SIZES.small,
-    borderRadius: 20,
-    backgroundColor: COLORS.lightGray,
-    shadowColor: COLORS.gray,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  selectedSubcategory: {
-    backgroundColor: COLORS.primary,
-  },
-  subcategoryText: {
-    fontSize: SIZES.medium,
-    color: COLORS.darkGray,
-  },
-  flatListContent: {
-    paddingHorizontal: SIZES.medium,
-    paddingTop: SIZES.medium,
-  },
-  separator: {
-    height: SIZES.medium,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-});

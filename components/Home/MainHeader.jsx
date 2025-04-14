@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   Text,
   View,
@@ -23,12 +23,27 @@ function MainHeader() {
   const [userData, setUserData] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [userLogin, setUserLogin] = useState(false);
+  const [visibleItems, setVisibleItems] = useState([]);
   const flatListRef = useRef(null);
   const scrollPosition = useRef(0);
 
+  // Definir todos los elementos disponibles
+  const allItems = useMemo(
+    () => [
+      { key: "header", component: <Header title="EXPLORAR" /> },
+      { key: "menu", component: <MenuScreen /> },
+      { key: "slide", component: <SlideSecction /> },
+      { key: "product", component: <ProductRow /> },
+      { key: "tendencia", component: <TendenciaScreen /> },
+    ],
+    []
+  );
+
   useEffect(() => {
     checkExistingUser();
-  }, []);
+    // Cargar solo los primeros elementos al inicio
+    setVisibleItems(allItems.slice(0, 2)); // Carga inicial: header y menu
+  }, [allItems]);
 
   const checkExistingUser = async () => {
     const id = await AsyncStorage.getItem("id");
@@ -47,17 +62,14 @@ function MainHeader() {
   };
 
   const onRefresh = async () => {
-    // Guardar posición actual del scroll
     scrollPosition.current = flatListRef.current?.contentOffset?.y || 0;
-
     setRefreshing(true);
 
     try {
       await checkExistingUser();
+      setVisibleItems(allItems.slice(0, 2)); // Reiniciar a carga inicial
     } finally {
       setRefreshing(false);
-
-      // Restaurar posición del scroll después de un breve retraso
       setTimeout(() => {
         if (flatListRef.current) {
           flatListRef.current.scrollToOffset({
@@ -68,6 +80,23 @@ function MainHeader() {
       }, 100);
     }
   };
+
+  // Cargar más elementos cuando se llegue al final
+  const loadMoreItems = useCallback(() => {
+    if (visibleItems.length < allItems.length) {
+      const nextItems = allItems.slice(
+        visibleItems.length,
+        visibleItems.length + 1
+      ); // Cargar 1 elemento a la vez
+      setVisibleItems((prev) => [...prev, ...nextItems]);
+    }
+  }, [visibleItems, allItems]);
+
+  // Renderizado optimizado de elementos
+  const renderItem = useCallback(
+    ({ item }) => <View style={{ marginBottom: 20 }}>{item.component}</View>,
+    []
+  );
 
   return (
     <View style={{ flex: 1 }}>
@@ -88,26 +117,17 @@ function MainHeader() {
         </View>
       </View>
 
-      {/* Scrollable content */}
+      {/* Scrollable content con carga progresiva */}
       <FlatList
         ref={flatListRef}
-        data={[
-          { key: "header", component: <Header title="EXPLORAR" /> },
-          { key: "menu", component: <MenuScreen /> },
-          { key: "slide", component: <SlideSecction /> },
-          { key: "product", component: <ProductRow /> },
-          { key: "tendencia", component: <TendenciaScreen /> },
-        ]}
+        data={visibleItems}
         keyExtractor={(item) => item.key}
-        renderItem={({ item }) => (
-          <View style={{ marginBottom: 20 }}>{item.component}</View>
-        )}
+        renderItem={renderItem}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            // Estos props ayudan con la animación
             progressViewOffset={50}
             tintColor={COLORS.primary}
           />
@@ -115,14 +135,18 @@ function MainHeader() {
         contentContainerStyle={{
           paddingBottom: 30,
         }}
-        // Configuración para un scroll más suave
+        // Optimizaciones para carga progresiva
+        initialNumToRender={2} // Renderiza solo 2 elementos inicialmente
+        maxToRenderPerBatch={1} // Renderiza 1 elemento por lote
+        windowSize={5} // Mantiene 5 elementos en memoria alrededor de la vista
+        removeClippedSubviews={true} // Elimina elementos fuera de pantalla
+        onEndReached={loadMoreItems} // Carga más cuando se llega al final
+        onEndReachedThreshold={0.5} // Dispara loadMoreItems cuando está al 50% del final
+        // Configuración para scroll suave
         overScrollMode="always"
         bounces={true}
         nestedScrollEnabled={true}
-        snapToAlignment="start" // Esto hace que el scroll se detenga al inicio de cada sección
-        snapToInterval={200} // Altura aproximada de tus secciones (ajusta según necesidad)
-        decelerationRate="normal" // Hace que el scroll se detenga más rápido
-        // Mantener el scroll position
+        decelerationRate="normal"
         maintainVisibleContentPosition={{
           minIndexForVisible: 0,
           autoscrollToTopThreshold: 0,

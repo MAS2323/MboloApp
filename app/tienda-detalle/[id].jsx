@@ -1,16 +1,13 @@
-// app/tienda-detalle/[id].jsx
 import {
   StyleSheet,
   Text,
   View,
   Image,
   ActivityIndicator,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
   FlatList,
+  TouchableOpacity,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { API_BASE_URL } from "../../config/Service.Config";
 import axios from "axios";
@@ -22,37 +19,12 @@ const TiendaDetalle = () => {
   const [tienda, setTienda] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [busqueda, setBusqueda] = useState("");
   const [pestañaActiva, setPestañaActiva] = useState("recomendados");
+  const [productos, setProductos] = useState([]);
+  const [visibleProductos, setVisibleProductos] = useState([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false); // Para el loading de más productos
 
-  // Datos de ejemplo para productos (manteniendo tus datos)
-  const [productos, setProductos] = useState([
-    {
-      id: 1,
-      nombre: "Silla Plegable",
-      descripcion: "Producto premium de exportación",
-      precio: 39,
-      ventas: 100,
-      imagen: "https://via.placeholder.com/150",
-      categoria: "hogar",
-      nuevo: false,
-      valoracion: 4.5,
-      envioRapido: true,
-    },
-    {
-      id: 2,
-      nombre: "Sandalias",
-      descripcion: "Las más vendidas este verano",
-      precio: 25,
-      ventas: 350,
-      imagen: "https://via.placeholder.com/150",
-      categoria: "calzado",
-      nuevo: true,
-      valoracion: 4.8,
-      envioRapido: true,
-    },
-  ]);
-
+  // Cargar datos de la tienda
   useEffect(() => {
     const cargarTienda = async () => {
       try {
@@ -70,46 +42,109 @@ const TiendaDetalle = () => {
     cargarTienda();
   }, [id]);
 
-  const productosFiltrados = productos.filter(
-    (producto) =>
-      producto.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      producto.descripcion.toLowerCase().includes(busqueda.toLowerCase())
+  // Simulación de carga inicial de productos (reemplazar con API real si existe)
+  useEffect(() => {
+    const cargarProductosIniciales = async () => {
+      try {
+        // Simulación de datos iniciales (puedes reemplazar con una llamada a la API)
+        const productosIniciales = [
+          {
+            id: 1,
+            nombre: "Silla Plegable",
+            descripcion: "Producto premium de exportación",
+            precio: 39,
+            ventas: 100,
+            imagen: "https://via.placeholder.com/150",
+            categoria: "hogar",
+            nuevo: false,
+            valoracion: 4.5,
+            envioRapido: true,
+          },
+          {
+            id: 2,
+            nombre: "Sandalias",
+            descripcion: "Las más vendidas este verano",
+            precio: 25,
+            ventas: 350,
+            imagen: "https://via.placeholder.com/150",
+            categoria: "calzado",
+            nuevo: true,
+            valoracion: 4.8,
+            envioRapido: true,
+          },
+        ];
+        setProductos(productosIniciales);
+        setVisibleProductos(productosIniciales.slice(0, 2)); // Carga inicial: 2 productos
+      } catch (err) {
+        console.error("Error al cargar productos iniciales:", err.message);
+      }
+    };
+
+    cargarProductosIniciales();
+  }, []);
+
+  // Cargar más productos progresivamente
+  const loadMoreProductos = useCallback(() => {
+    if (visibleProductos.length < productos.length && !isLoadingMore) {
+      setIsLoadingMore(true);
+      // Simulación de carga desde la base de datos (reemplazar con API real si existe)
+      setTimeout(() => {
+        const nextProductos = productos.slice(
+          visibleProductos.length,
+          visibleProductos.length + 2
+        ); // Cargar 2 productos a la vez
+        setVisibleProductos((prev) => [...prev, ...nextProductos]);
+        setIsLoadingMore(false);
+      }, 1000); // Retraso para simular llamada a la API
+    }
+  }, [visibleProductos, productos, isLoadingMore]);
+
+  const renderizarProducto = useCallback(
+    ({ item }) => (
+      <TouchableOpacity style={styles.tarjetaProducto}>
+        <Image source={{ uri: item.imagen }} style={styles.imagenProducto} />
+        <View style={styles.infoProducto}>
+          <Text style={styles.tituloProducto}>{item.nombre}</Text>
+          <Text style={styles.descripcionProducto}>{item.descripcion}</Text>
+
+          {item.nuevo && (
+            <View style={styles.etiquetaNuevo}>
+              <Text style={styles.textoEtiquetaNuevo}>NUEVO</Text>
+            </View>
+          )}
+
+          <View style={styles.metaProducto}>
+            <View style={styles.datosProducto}>
+              <Text style={styles.ventasProducto}>
+                🔥 {item.ventas}+ vendidos
+              </Text>
+              {item.envioRapido && (
+                <Text style={styles.envioRapido}>Envío rápido</Text>
+              )}
+            </View>
+            <Text style={styles.precioProducto}>${item.precio}</Text>
+          </View>
+
+          <View style={styles.valoracionContainer}>
+            <Ionicons name="star" size={16} color="#FFD700" />
+            <Text style={styles.textoValoracion}>{item.valoracion}</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    ),
+    []
   );
 
-  const renderizarProducto = ({ item }) => (
-    <TouchableOpacity style={styles.tarjetaProducto}>
-      <Image source={{ uri: item.imagen }} style={styles.imagenProducto} />
-      <View style={styles.infoProducto}>
-        <Text style={styles.tituloProducto}>{item.nombre}</Text>
-        <Text style={styles.descripcionProducto}>{item.descripcion}</Text>
-
-        {item.nuevo && (
-          <View style={styles.etiquetaNuevo}>
-            <Text style={styles.textoEtiquetaNuevo}>NUEVO</Text>
-          </View>
-        )}
-
-        <View style={styles.metaProducto}>
-          <View style={styles.datosProducto}>
-            <Text style={styles.ventasProducto}>
-              🔥 {item.ventas}+ vendidos
-            </Text>
-            {item.envioRapido && (
-              <Text style={styles.envioRapido}>Envío rápido</Text>
-            )}
-          </View>
-          <Text style={styles.precioProducto}>${item.precio}</Text>
-        </View>
-
-        <View style={styles.valoracionContainer}>
-          <Ionicons name="star" size={16} color="#FFD700" />
-          <Text style={styles.textoValoracion}>{item.valoracion}</Text>
-        </View>
+  // Componente para el indicador de carga en el footer
+  const renderFooter = useCallback(() => {
+    return isLoadingMore ? (
+      <View style={styles.contenedorCarga}>
+        <ActivityIndicator size="large" color="#4c86A8" />
       </View>
-    </TouchableOpacity>
-  );
+    ) : null;
+  }, [isLoadingMore]);
 
-  // Componente para el encabezado de la lista (incluye banner, info de tienda, etc.)
+  // Componente para el encabezado de la lista
   const ListHeader = () => (
     <>
       {/* Banner de la tienda */}
@@ -173,15 +208,6 @@ const TiendaDetalle = () => {
           )
         )}
       </View>
-
-      {/* Filtros de productos */}
-      <View style={styles.contenedorFiltros}>
-        {["Todos", "Más vendidos", "Novedades", "Precio"].map((filtro) => (
-          <TouchableOpacity key={filtro} style={styles.botonFiltro}>
-            <Text style={styles.textoFiltro}>{filtro}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
     </>
   );
 
@@ -207,12 +233,20 @@ const TiendaDetalle = () => {
     <View style={styles.contenedor}>
       <Header title="Tienda" />
       <FlatList
-        data={productosFiltrados}
+        data={visibleProductos}
         renderItem={renderizarProducto}
         keyExtractor={(item) => item.id.toString()}
         ListHeaderComponent={ListHeader}
         contentContainerStyle={styles.listaProductos}
         showsVerticalScrollIndicator={false}
+        // Carga progresiva
+        initialNumToRender={2} // Renderiza solo 2 productos inicialmente
+        maxToRenderPerBatch={2} // Renderiza 2 productos por lote
+        windowSize={5} // Mantiene 5 elementos en memoria
+        removeClippedSubviews={true} // Elimina elementos fuera de pantalla
+        onEndReached={loadMoreProductos} // Carga más al llegar al final
+        onEndReachedThreshold={0.5} // Dispara carga al 50% del final
+        ListFooterComponent={renderFooter} // Indicador de carga
       />
     </View>
   );
@@ -221,7 +255,6 @@ const TiendaDetalle = () => {
 const styles = StyleSheet.create({
   contenedor: {
     flex: 1,
-    // backgroundColor: "#fff",
     marginTop: 30,
   },
   contenedorCarga: {
@@ -319,23 +352,6 @@ const styles = StyleSheet.create({
   textoPestañaActiva: {
     color: "#ff4d4f",
     fontWeight: "bold",
-  },
-  contenedorFiltros: {
-    flexDirection: "row",
-    padding: 10,
-    backgroundColor: "#f9f9f9",
-    marginTop: 5,
-  },
-  botonFiltro: {
-    paddingHorizontal: 15,
-    paddingVertical: 6,
-    marginRight: 8,
-    borderRadius: 15,
-    backgroundColor: "#eee",
-  },
-  textoFiltro: {
-    fontSize: 13,
-    color: "#666",
   },
   listaProductos: {
     paddingBottom: 20,

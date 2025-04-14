@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
+  useWindowDimensions,
 } from "react-native";
 import useFetch from "../../hooks/useFech";
 import { COLORS, SIZES } from "../../constants/theme";
@@ -19,10 +20,17 @@ import Header from "../../components/Home/Header";
 
 const ProductList = ({ userId }) => {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const { data, isLoading, error } = useFetch(`${API_BASE_URL}/products`);
 
   const [categorias, setCategorias] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
+
+  // Configuración responsive
+  const isLargeScreen = width >= 768;
+  const numColumns = isLargeScreen ? 3 : 2;
+  const categoryFontSize = isLargeScreen ? SIZES.medium : SIZES.small;
+  const productMargin = isLargeScreen ? SIZES.medium : SIZES.small;
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -65,8 +73,14 @@ const ProductList = ({ userId }) => {
   return (
     <View style={styles.container}>
       <Header title="PRODUCTOS" />
+
       {/* Lista de Categorías (Horizontal) */}
-      <View style={styles.appBarWrapper}>
+      <View
+        style={[
+          styles.appBarWrapper,
+          { paddingHorizontal: isLargeScreen ? SIZES.large : SIZES.small },
+        ]}
+      >
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -79,6 +93,9 @@ const ProductList = ({ userId }) => {
                 styles.categoryButton,
                 selectedCategory?._id === category._id &&
                   styles.selectedCategoryButton,
+                {
+                  paddingHorizontal: isLargeScreen ? SIZES.large : SIZES.medium,
+                },
               ]}
               onPress={() => handleCategorySelect(category)}
             >
@@ -87,7 +104,11 @@ const ProductList = ({ userId }) => {
                   styles.categoryText,
                   selectedCategory?._id === category._id &&
                     styles.selectedCategoryText,
+                  { fontSize: categoryFontSize },
                 ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
               >
                 {category.name}
               </Text>
@@ -96,17 +117,42 @@ const ProductList = ({ userId }) => {
         </ScrollView>
       </View>
 
-      {/* Lista de Productos (Vertical) */}
+      {/* Lista de Productos (Grid) */}
       <FlatList
         data={data}
-        numColumns={2}
+        numColumns={numColumns}
         renderItem={({ item }) => (
-          <ProductCardView item={item} userId={userId} />
+          <View
+            style={{
+              flex: 1 / numColumns,
+              margin: productMargin,
+              maxWidth: isLargeScreen ? "33.33%" : "50%",
+            }}
+          >
+            <ProductCardView
+              item={item}
+              userId={userId}
+              cardStyle={{
+                height: isLargeScreen ? 280 : 220,
+                borderRadius: isLargeScreen ? SIZES.medium : SIZES.small,
+              }}
+            />
+          </View>
         )}
         keyExtractor={(item) => item._id}
-        contentContainerStyle={styles.flatListContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        contentContainerStyle={[
+          styles.flatListContent,
+          { paddingHorizontal: isLargeScreen ? SIZES.large : SIZES.small },
+        ]}
+        ItemSeparatorComponent={() => (
+          <View style={{ height: productMargin }} />
+        )}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No hay productos disponibles</Text>
+          </View>
+        }
       />
     </View>
   );

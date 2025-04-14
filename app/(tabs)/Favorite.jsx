@@ -45,7 +45,10 @@ const Favorite = () => {
   const fetchFavorites = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/favorites/${userId}`);
-      setFavorites(response.data.subcategories || []);
+
+      // Asegúrate de que siempre haya un objeto con subcategories
+      const favoritesData = response.data?.subcategories || [];
+      setFavorites(favoritesData);
     } catch (error) {
       console.error(
         "Error fetching favorites:",
@@ -151,7 +154,14 @@ const Favorite = () => {
           />
         }
         ListEmptyComponent={
-          <Text style={styles.message}>No favorites yet.</Text>
+          <View style={styles.emptyContainer}>
+            <Image
+              source={require("./../../assets/images/faraitos.jpeg")}
+              style={styles.emptyImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.emptyText}>Aún no hay favoritos.</Text>
+          </View>
         }
       />
     </View>
@@ -164,7 +174,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    // backgroundColor: "#f9f9f9",
     marginTop: 32,
   },
   card: {
@@ -198,11 +207,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#666",
   },
-  message: {
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 50,
+  },
+  emptyImage: {
+    width: 200,
+    height: 200,
+  },
+  emptyText: {
     textAlign: "center",
     fontSize: 16,
     color: "#000",
-    justifyContent: "center",
-    margin: "auto",
+    marginTop: 20,
   },
 });

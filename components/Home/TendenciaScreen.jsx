@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   StyleSheet,
   Text,
@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   FlatList,
   Linking,
+  ActivityIndicator,
 } from "react-native";
-import { MaterialIcons, AntDesign, Entypo, Feather } from "@expo/vector-icons";
+import { MaterialIcons, Entypo, Feather } from "@expo/vector-icons";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "../../config/Service.Config";
@@ -24,7 +25,9 @@ const shuffleArray = (array) => {
 
 const TendenciasScreen = () => {
   const [subcategories, setSubcategories] = useState([]);
+  const [visibleItems, setVisibleItems] = useState([]);
   const [userId, setUserId] = useState(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false); // Estado para el loading
   const router = useRouter();
 
   useEffect(() => {
@@ -50,6 +53,7 @@ const TendenciasScreen = () => {
         const response = await axios.get(`${API_BASE_URL}/menus`);
         const shuffledSubcategories = shuffleArray(response.data);
         setSubcategories(shuffledSubcategories);
+        setVisibleItems(shuffledSubcategories.slice(0, 5)); // Carga inicial: 5 elementos
       } catch (error) {
         console.error("Error fetching subcategories:", error);
       }
@@ -57,6 +61,22 @@ const TendenciasScreen = () => {
 
     fetchSubcategories();
   }, []);
+
+  // Cargar más elementos cuando se llegue al final
+  const loadMoreItems = useCallback(() => {
+    if (visibleItems.length < subcategories.length && !isLoadingMore) {
+      setIsLoadingMore(true); // Mostrar el spinner
+      // Simular un pequeño retraso para que el loading sea visible (opcional)
+      setTimeout(() => {
+        const nextItems = subcategories.slice(
+          visibleItems.length,
+          visibleItems.length + 3
+        ); // Cargar 3 elementos a la vez
+        setVisibleItems((prev) => [...prev, ...nextItems]);
+        setIsLoadingMore(false); // Ocultar el spinner
+      }, 500); // Retraso de 500ms para simular carga
+    }
+  }, [visibleItems, subcategories, isLoadingMore]);
 
   const handlePress = (subcategory) => {
     router.push({
@@ -73,52 +93,70 @@ const TendenciasScreen = () => {
     Linking.openURL(`https://wa.me/${phoneNumber}`);
   };
 
-  const renderItem = ({ item }) => (
-    <View key={item._id}>
-      <TouchableOpacity style={styles.card} onPress={() => handlePress(item)}>
-        <Image
-          source={{
-            uri: item.images?.[0]?.url || "https://via.placeholder.com/150",
-          }}
-          style={styles.image}
-        />
-        <View style={styles.infoContainer}>
-          <View style={styles.locationContainer}>
-            <Text style={styles.location}>
-              <Entypo name="location" size={24} color="#4c86A8" />{" "}
-              {item.location
-                ? `${item.location.city}, ${item.location.province}`
-                : "N/A"}
+  // Renderizado optimizado de elementos
+  const renderItem = useCallback(
+    ({ item }) => (
+      <View key={item._id}>
+        <TouchableOpacity style={styles.card} onPress={() => handlePress(item)}>
+          <Image
+            source={{
+              uri: item.images?.[0]?.url || "https://via.placeholder.com/150",
+            }}
+            style={styles.image}
+          />
+          <View style={styles.infoContainer}>
+            <View style={styles.locationContainer}>
+              <Text style={styles.location}>
+                <Entypo name="location" size={24} color="#4c86A8" />{" "}
+                {item.location
+                  ? `${item.location.city}, ${item.location.province}`
+                  : "N/A"}
+              </Text>
+            </View>
+            <Text style={styles.price}>Precio: ${item.price || "N/A"}</Text>
+            <Text style={styles.description}>
+              {item.description ||
+                "Descripción corta del producto o tendencia."}
             </Text>
+            <View style={styles.contactContainer}>
+              <TouchableOpacity
+                style={styles.whatsappButton}
+                onPress={() => handleWhatsApp(item.whatsapp)}
+              >
+                <Text style={styles.whatsappText}>WhatsApp</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.IconButton}
+                onPress={() => handleCall(item.phoneNumber)}
+              >
+                <MaterialIcons
+                  name="call"
+                  size={24}
+                  color="#4c86A8"
+                  style={styles.callIcon}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
-          <Text style={styles.price}>Precio: ${item.price || "N/A"}</Text>
-          <Text style={styles.description}>
-            {item.description || "Descripción corta del producto o tendencia."}
-          </Text>
-          <View style={styles.contactContainer}>
-            <TouchableOpacity
-              style={styles.whatsappButton}
-              onPress={() => handleWhatsApp(item.whatsapp)}
-            >
-              <Text style={styles.whatsappText}>WhatsApp</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.IconButton}
-              onPress={() => handleCall(item.phoneNumber)}
-            >
-              <MaterialIcons
-                name="call"
-                size={24}
-                color="#4c86A8"
-                style={styles.callIcon}
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableOpacity>
-      <View style={styles.separator} />
-    </View>
+        </TouchableOpacity>
+        <View style={styles.separator} />
+      </View>
+    ),
+    []
   );
+
+  // Memoizar keyExtractor para evitar recreaciones
+  const keyExtractor = useCallback((item) => item._id, []);
+
+  // Componente para el indicador de carga
+  const renderFooter = useCallback(() => {
+    return isLoadingMore ? (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#4c86A8" />
+      </View>
+    ) : null;
+  }, [isLoadingMore]);
+
   return (
     <View style={styles.container}>
       <View style={styles.titleContainer}>
@@ -126,11 +164,25 @@ const TendenciasScreen = () => {
         <Feather name="trending-up" size={27} color="#4c86A8" />
       </View>
       <FlatList
-        data={subcategories}
-        keyExtractor={(item) => item._id}
+        data={visibleItems}
+        keyExtractor={keyExtractor}
         renderItem={renderItem}
         contentContainerStyle={styles.listContainer}
         nestedScrollEnabled={true}
+        // Optimizaciones para carga progresiva
+        initialNumToRender={5} // Renderiza solo 5 elementos inicialmente
+        maxToRenderPerBatch={3} // Renderiza 3 elementos por lote
+        windowSize={7} // Mantiene 7 elementos en memoria alrededor de la vista
+        removeClippedSubviews={true} // Elimina elementos fuera de pantalla
+        onEndReached={loadMoreItems} // Carga más cuando se llega al final
+        onEndReachedThreshold={0.5} // Dispara loadMoreItems cuando está al 50% del final
+        // Configuración para scroll suave
+        showsVerticalScrollIndicator={false}
+        overScrollMode="always"
+        bounces={true}
+        decelerationRate="normal"
+        // Indicador de carga
+        ListFooterComponent={renderFooter}
       />
     </View>
   );
@@ -144,9 +196,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     paddingHorizontal: 15,
-  },
-  itemContainer: {
-    marginBottom: 0,
+    paddingBottom: 20, // Espacio extra para el footer
   },
   card: {
     flexDirection: "row",
@@ -208,11 +258,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
   },
-  phoneNumber: {
-    fontSize: 14,
-    color: "#000",
-    textDecorationLine: "underline",
-  },
   title: {
     textAlign: "left",
     marginTop: 7,
@@ -230,14 +275,14 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   IconButton: {
-    // backgroundColor: "#4c86A8",
     borderRadius: 5,
     paddingVertical: 5,
     paddingHorizontal: 10,
   },
-  heartIcon: {
-    marginRight: 20,
-    color: "red",
+  loaderContainer: {
+    paddingVertical: 20,
+    alignItems: "center",
   },
 });
+
 export default TendenciasScreen;
