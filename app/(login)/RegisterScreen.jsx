@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,37 +8,20 @@ import {
   ScrollView,
 } from "react-native";
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "../../config/Service.Config";
-import { Ionicons } from "@expo/vector-icons";
-import Picker from "react-native-picker-select";
 import Botton from "../../components/providers/Botton";
 import { COLORS } from "../../constants/theme";
 import { router } from "expo-router";
+
 function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     userName: "",
     email: "",
-    mobile: "",
-    ciudad: "",
     password: "",
   });
-  const [cities, setCities] = useState([]);
   const [errors, setErrors] = useState({});
-
-  useEffect(() => {
-    const fetchCities = async () => {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/locations/cities`);
-        setCities(response.data);
-      } catch (error) {
-        console.error("Error al obtener ciudades:", error);
-        Alert.alert("Error", "No se pudieron cargar las ciudades.");
-      }
-    };
-
-    fetchCities();
-  }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -47,13 +30,6 @@ function RegisterPage() {
     }
     if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Introduce un email válido.";
-    }
-    if (!formData.mobile || formData.mobile.length < 9) {
-      newErrors.mobile =
-        "Introduce un número de móvil válido (mínimo 9 dígitos).";
-    }
-    if (!formData.ciudad) {
-      newErrors.ciudad = "Por favor selecciona una ciudad.";
     }
     if (!formData.password || formData.password.length < 8) {
       newErrors.password = "La contraseña debe tener al menos 8 caracteres.";
@@ -73,14 +49,27 @@ function RegisterPage() {
       const response = await axios.post(endpoint, formData);
 
       if (response.status === 200) {
-        router.push("LoginSceen");
-        Alert.alert("Registro exitoso", "Ahora puedes iniciar sesión.");
+        // Guardar el userId y los datos del usuario en AsyncStorage para iniciar sesión automáticamente
+        const userId = response.data.userId;
+        const userData = {
+          userName: formData.userName,
+          email: formData.email,
+        };
+        await AsyncStorage.setItem("id", JSON.stringify(userId));
+        await AsyncStorage.setItem(`user${userId}`, JSON.stringify(userData));
+
+        // Redirigir a la pantalla principal
+        router.replace("(tabs)");
+        Alert.alert(
+          "Registro exitoso",
+          "Has sido registrado e iniciado sesión automáticamente."
+        );
       }
     } catch (error) {
       Alert.alert(
         "Error",
         error.response?.data?.message ||
-          "Error al registrarse, intentelo de nuevo."
+          "Error al registrarse, intenta de nuevo."
       );
     } finally {
       setLoading(false);
@@ -112,19 +101,10 @@ function RegisterPage() {
             style={styles.textInput}
             value={formData.email}
             onChangeText={(text) => handleInputChange("email", text)}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
           {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-        </View>
-        <View style={styles.inputContainer}>
-          <TextInput
-            placeholder="Telefono"
-            style={styles.textInput}
-            value={formData.mobile}
-            onChangeText={(text) => handleInputChange("mobile", text)}
-          />
-          {errors.mobile && (
-            <Text style={styles.errorText}>{errors.mobile}</Text>
-          )}
         </View>
         <View style={styles.inputContainer}>
           <TextInput
@@ -136,21 +116,6 @@ function RegisterPage() {
           />
           {errors.password && (
             <Text style={styles.errorText}>{errors.password}</Text>
-          )}
-        </View>
-        <View style={styles.inputContainer}>
-          <Ionicons name="location-outline" size={24} color="#4c86A8" />
-          <Picker
-            placeholder={{ label: "Selecciona una ciudad", value: null }}
-            style={pickerSelectStyles}
-            onValueChange={(value) => handleInputChange("ciudad", value)}
-            items={cities.map((city) => ({
-              label: city.name,
-              value: city._id,
-            }))}
-          />
-          {errors.ciudad && (
-            <Text style={styles.errorText}>{errors.ciudad}</Text>
           )}
         </View>
         <Botton loader={loading} title="REGISTRAR" onPress={registerUser} />
@@ -192,31 +157,6 @@ const styles = StyleSheet.create({
     color: "red",
     fontSize: 12,
     marginTop: 5,
-  },
-});
-
-const pickerSelectStyles = StyleSheet.create({
-  inputIOS: {
-    fontSize: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    color: "black",
-    paddingRight: 30,
-    backgroundColor: "#f0f0f0",
-  },
-  inputAndroid: {
-    fontSize: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    color: "black",
-    paddingRight: 30,
-    backgroundColor: "#f0f0f0",
   },
 });
 

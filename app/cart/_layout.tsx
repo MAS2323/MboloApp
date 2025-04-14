@@ -14,6 +14,9 @@ export default function Layout() {
         <Stack.Screen name="ProductDetails" />
         <Stack.Screen name="ProductList" />
         <Stack.Screen name="SearchScreen" />
+        <Stack.Screen name="ChangeEmailScreen" />
+        <Stack.Screen name="BusinessInfoScreen" />
+        <Stack.Screen name="PhoneNumbersScreen" />
         <Stack.Screen
           name="SobreNosotrosScreen"
           options={{
@@ -36,7 +39,8 @@ export default function Layout() {
             headerTitleStyle: { fontSize: 20 },
           }}
         />
-        <Stack.Screen name="UpdateProfile" />
+        <Stack.Screen name="PersonalInfoScreen" />
+        <Stack.Screen name="SelectSexScreen" />
         <Stack.Screen name="SearchTile" />
         <Stack.Screen name="ProductEdition" />
         <Stack.Screen name="tendenciaGalleryScreen" />

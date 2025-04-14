@@ -47,17 +47,22 @@ function MainHeader() {
 
   const checkExistingUser = async () => {
     const id = await AsyncStorage.getItem("id");
-    const useId = `user${JSON.parse(id)}`;
+    const userId = `user${JSON.parse(id)}`;
 
     try {
-      const currentUser = await AsyncStorage.getItem(useId);
+      const currentUser = await AsyncStorage.getItem(userId);
       if (currentUser !== null) {
         const parsedData = JSON.parse(currentUser);
         setUserData(parsedData);
         setUserLogin(true);
+      } else {
+        setUserData(null);
+        setUserLogin(false);
       }
     } catch (error) {
       console.log("Error recuperando tus datos:", error);
+      setUserData(null);
+      setUserLogin(false);
     }
   };
 
@@ -98,6 +103,9 @@ function MainHeader() {
     []
   );
 
+  // Determinar la ubicación a mostrar
+  const displayLocation = userData?.ciudad?.name || "Guinea Ecuatorial";
+
   return (
     <View style={{ flex: 1 }}>
       {/* Fixed header section */}
@@ -106,9 +114,7 @@ function MainHeader() {
           <TouchableOpacity onPress={() => {}}>
             <Ionicons name="location-outline" size={30} color="black" />
           </TouchableOpacity>
-          <Text style={styles.location}>
-            {userData ? userData?.ciudad?.name : "Guinea Ecuatorial"}
-          </Text>
+          <Text style={styles.location}>{displayLocation}</Text>
           <View style={{ alignItems: "flex-end" }}>
             <TouchableOpacity onPress={() => router.push("/cart/CartScreen")}>
               <Fontisto name="shopping-bag" size={24} color={COLORS.black} />
