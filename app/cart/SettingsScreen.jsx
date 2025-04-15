@@ -6,13 +6,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  FlatList,
+  SectionList,
 } from "react-native";
 import Toast from "react-native-toast-message";
 import { StatusBar } from "expo-status-bar";
 import {
   AntDesign,
-  MaterialCommunityIcons,
   MaterialIcons,
   FontAwesome,
   Ionicons,
@@ -23,7 +22,45 @@ import { COLORS } from "./../../constants/theme";
 import { API_BASE_URL } from "./../../config/Service.Config";
 import { useRouter } from "expo-router";
 
-export default function SettingsScreen() {
+// Header Component
+const Header = ({ onBack, title }) => (
+  <View style={styles.header}>
+    <TouchableOpacity onPress={onBack}>
+      <MaterialIcons name="chevron-left" size={30} color="#00C853" />
+    </TouchableOpacity>
+    <Text style={styles.headerText}>{title}</Text>
+    <View style={{ width: 30 }} />
+  </View>
+);
+
+// Menu Item Component
+const MenuItem = ({
+  icon,
+  label,
+  onPress,
+  additionalInfo,
+  iconColor,
+  iconBackgroundColor,
+}) => (
+  <TouchableOpacity onPress={onPress} style={styles.menuItem}>
+    <View style={styles.menuItemInner}>
+      <View
+        style={[styles.iconContainer, { backgroundColor: iconBackgroundColor }]}
+      >
+        {React.cloneElement(icon, { color: iconColor || COLORS.white })}
+      </View>
+      <Text style={styles.menuText}>{label}</Text>
+    </View>
+    <View style={styles.rightContainer}>
+      {additionalInfo && (
+        <Text style={styles.additionalInfo}>{additionalInfo}</Text>
+      )}
+      <MaterialIcons name="chevron-right" size={24} color={COLORS.gray} />
+    </View>
+  </TouchableOpacity>
+);
+
+const SettingsScreen = () => {
   const router = useRouter();
   const [userData, setUserData] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -83,41 +120,16 @@ export default function SettingsScreen() {
     );
   };
 
-  const clearCache = async () => {
-    try {
-      const confirmed = await new Promise((resolve) => {
-        Alert.alert(
-          "Limpiar la caché",
-          "¿Estás seguro de que quieres eliminar todos los datos guardados en tu dispositivo?",
-          [
-            {
-              text: "Cancelar",
-              style: "cancel",
-              onPress: () => resolve(false),
-            },
-            { text: "Continuar", onPress: () => resolve(true) },
-          ]
-        );
-      });
-      if (confirmed) {
-        await AsyncStorage.clear();
-        console.log("Caché eliminada");
-      }
-    } catch (error) {
-      console.error("Error al limpiar la caché:", error);
-    }
-  };
-
   const deleteAccount = async () => {
     try {
       const userId = await AsyncStorage.getItem("id");
-      if (!id) {
+      if (!userId) {
         console.log("ID del usuario no encontrado en AsyncStorage");
         return;
       }
       Alert.alert(
         "Eliminar mi cuenta",
-        "¿Estás seguro de que quieres eliminar tu cuenta?",
+        "¿Estás seguro de que quieres eliminar tu cuenta permanentemente?",
         [
           {
             text: "Cancelar",
@@ -128,7 +140,7 @@ export default function SettingsScreen() {
             text: "Continuar",
             onPress: async () => {
               try {
-                const endpoint = `${API_BASE_URL}/user/${userId}`;
+                const endpoint = `${API_BASE_URL}/user/${JSON.parse(userId)}`;
                 const response = await axios.delete(endpoint);
                 if (response.status === 200) {
                   console.log("Cuenta eliminada");
@@ -137,6 +149,10 @@ export default function SettingsScreen() {
                 }
               } catch (error) {
                 console.error("Error al eliminar la cuenta:", error);
+                Alert.alert(
+                  "Error",
+                  "No se pudo eliminar la cuenta. Intenta de nuevo."
+                );
               }
             },
           },
@@ -158,85 +174,109 @@ export default function SettingsScreen() {
     }, 2000);
   }, []);
 
-  const renderMenuItem = (icon, label, onPress, additionalInfo = null) => (
-    <TouchableOpacity onPress={onPress} style={styles.menuItem}>
-      <View style={styles.menuItemInner}>
-        {icon}
-        <Text style={styles.menuText}>{label}</Text>
-      </View>
-      <View style={styles.rightContainer}>
-        {additionalInfo && (
-          <Text style={styles.additionalInfo}>{additionalInfo}</Text>
-        )}
-        <MaterialIcons name="chevron-right" size={24} color={COLORS.gray} />
-      </View>
-    </TouchableOpacity>
-  );
-
-  const menuItems = [
+  const sections = [
     {
-      icon: <Ionicons name="person" size={24} color={COLORS.black} />,
-      label: "Información personal",
-      onPress: () => router.push("/cart/PersonalInfoScreen"),
+      title: "Cuenta",
+      data: [
+        {
+          icon: <Ionicons name="person" size={24} />,
+          label: "Información personal",
+          onPress: () => router.push("/cart/PersonalInfoScreen"),
+          iconColor: COLORS.white,
+          iconBackgroundColor: "#FF9500", // Matches "Información de negocio"
+        },
+        {
+          icon: <MaterialIcons name="business" size={24} />,
+          label: "Información de negocio",
+          onPress: () => router.push("/cart/BusinessInfoScreen"),
+          iconColor: COLORS.white,
+          iconBackgroundColor: "#FF9500",
+        },
+        {
+          icon: <MaterialIcons name="phone" size={24} />,
+          label: "Teléfono",
+          onPress: () => router.push("/cart/PhoneNumbersScreen"),
+          additionalInfo: "Añadir",
+          iconColor: COLORS.white,
+          iconBackgroundColor: "#00C853",
+        },
+        {
+          icon: <MaterialIcons name="email" size={24} />,
+          label: "Correo",
+          onPress: () => router.push("/cart/ChangeEmailScreen"),
+          additionalInfo: userData?.email || "mboloapp@mbolo.com",
+          iconColor: COLORS.white,
+          iconBackgroundColor: "#FF9500",
+        },
+        {
+          icon: <MaterialIcons name="lock" size={24} />,
+          label: "Cambiar contraseña",
+          onPress: () => router.push("/cart/ChangePasswordScreen"),
+          iconColor: COLORS.gray,
+          iconBackgroundColor: "#E0E0E0",
+        },
+      ],
     },
     {
-      icon: <MaterialIcons name="business" size={24} color="#FF9500" />,
-      label: "Información de negocio",
-      onPress: () => router.push("/cart/BusinessInfoScreen"),
+      title: "Preferencias",
+      data: [
+        {
+          icon: <MaterialIcons name="chat" size={24} />,
+          label: "Desactivar chat",
+          onPress: () => router.push("/cart/DisableChatScreen"),
+          additionalInfo: "Habilitado",
+          iconColor: COLORS.white,
+          iconBackgroundColor: "#00C853",
+        },
+        {
+          icon: <MaterialIcons name="feedback" size={24} />,
+          label: "Desactivar comentarios",
+          onPress: () => router.push("/cart/DisableFeedbackScreen"),
+          additionalInfo: "Habilitado",
+          iconColor: COLORS.white,
+          iconBackgroundColor: "#FF9500",
+        },
+        {
+          icon: <MaterialIcons name="notifications" size={24} />,
+          label: "Gestionar notificaciones",
+          onPress: () => router.push("/cart/ManageNotificationsScreen"),
+          iconColor: COLORS.white,
+          iconBackgroundColor: "#FF3D00",
+        },
+      ],
     },
     {
-      icon: <MaterialIcons name="phone" size={24} color="#00C853" />,
-      label: "Teléfono",
-      onPress: () => router.push("/cart/PhoneNumbersScreen"),
-      additionalInfo: "Añadir",
-    },
-    {
-      icon: <MaterialIcons name="email" size={24} color="#FF9500" />,
-      label: "Correo",
-      onPress: () => router.push("/cart/ChangeEmailScreen"),
-      additionalInfo: userData?.email || "masoneweernesto@gmail.com",
-    },
-    {
-      icon: <MaterialIcons name="chat" size={24} color="#00C853" />,
-      label: "Desactivar chat",
-      onPress: () => router.push("/profile/DisableChatScreen"),
-      additionalInfo: "Habilitado",
-    },
-    {
-      icon: <MaterialIcons name="feedback" size={24} color="#FF9500" />,
-      label: "Desactivar comentarios",
-      onPress: () => router.push("/profile/DisableFeedbackScreen"),
-      additionalInfo: "Habilitado",
-    },
-    {
-      icon: <MaterialIcons name="notifications" size={24} color="#FF3D00" />,
-      label: "Gestionar notificaciones",
-      onPress: () => router.push("/profile/ManageNotificationsScreen"),
-    },
-    {
-      icon: <MaterialIcons name="info" size={24} color="#000" />,
-      label: "Sobre MboloApp",
-      onPress: () => router.push("/cart/SobreNosotrosScreen"),
-    },
-    {
-      icon: <FontAwesome name="star" size={24} color="#000" />,
-      label: "Califícanos",
-      onPress: () => router.push("/profile/RateUsScreen"),
-    },
-    {
-      icon: <MaterialIcons name="lock" size={24} color="#757575" />,
-      label: "Cambiar contraseña",
-      onPress: () => router.push("/profile/ChangePasswordScreen"),
-    },
-    {
-      icon: <MaterialIcons name="delete" size={24} color="#757575" />,
-      label: "Eliminar cuenta",
-      onPress: deleteAccount,
-    },
-    {
-      icon: <AntDesign name="logout" size={24} color="#757575" />,
-      label: "Cerrar sesión",
-      onPress: logout,
+      title: "General",
+      data: [
+        {
+          icon: <MaterialIcons name="info" size={24} />,
+          label: "Sobre MboloApp",
+          onPress: () => router.push("/cart/SobreNosotrosScreen"),
+          iconColor: COLORS.white,
+          iconBackgroundColor: "#212121",
+        },
+        {
+          icon: <FontAwesome name="star" size={24} />,
+          label: "Califícanos",
+          onPress: () => router.push("/profile/RateUsScreen"),
+          iconColor: COLORS.white,
+          iconBackgroundColor: "#212121",
+        },
+        {
+          icon: <MaterialIcons name="delete" size={24} />,
+          label: "Eliminar mi cuenta",
+          onPress: deleteAccount,
+          iconColor: COLORS.gray,
+          iconBackgroundColor: "#E0E0E0",
+        },
+        {
+          icon: <AntDesign name="logout" size={24} />,
+          label: "Cerrar sesión",
+          onPress: logout,
+          iconColor: COLORS.gray,
+          iconBackgroundColor: "#E0E0E0",
+        },
+      ],
     },
   ];
 
@@ -253,29 +293,33 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="transparent" translucent />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <MaterialIcons name="chevron-left" size={30} color="#00C853" />
-        </TouchableOpacity>
-        <Text style={styles.headerText}>Configuración</Text>
-      </View>
-
-      <FlatList
-        data={isLoggedIn ? menuItems : []}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) =>
-          renderMenuItem(
-            item.icon,
-            item.label,
-            item.onPress,
-            item.additionalInfo
-          )
-        }
-        contentContainerStyle={styles.menuWrapper}
+      <Header onBack={() => router.back()} title="Configuración" />
+      <SectionList
+        sections={sections}
+        keyExtractor={(item, index) => item.label + index}
+        renderItem={({ item }) => (
+          <MenuItem
+            icon={item.icon}
+            label={item.label}
+            onPress={item.onPress}
+            additionalInfo={item.additionalInfo}
+            iconColor={item.iconColor}
+            iconBackgroundColor={item.iconBackgroundColor}
+          />
+        )}
+        renderSectionHeader={({ section: { title } }) => (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionHeaderText}>{title}</Text>
+          </View>
+        )}
+        contentContainerStyle={styles.sectionListContent}
+        stickySectionHeadersEnabled={false}
       />
     </SafeAreaView>
   );
-}
+};
+
+export default SettingsScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -284,44 +328,53 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifyContent: "flex-start",
+    justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
-    zIndex: 1,
   },
   headerText: {
     fontSize: 20,
     fontWeight: "bold",
     color: COLORS.black,
   },
-  savedButton: {
-    backgroundColor: "#E0F7FA",
-    borderRadius: 20,
-    paddingVertical: 5,
+  sectionListContent: {
     paddingHorizontal: 15,
+    paddingBottom: 20,
   },
-  savedButtonText: {
-    color: "#00C853",
-    fontSize: 14,
-    fontWeight: "bold",
+  sectionHeader: {
+    backgroundColor: "#F5F5F5",
+    paddingVertical: 10,
+    paddingHorizontal: 5,
+    marginTop: 10,
   },
-  menuWrapper: {
-    paddingHorizontal: 15,
-    paddingTop: 20, // Añadir padding para evitar solapamiento con el encabezado fijo
+  sectionHeaderText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.gray,
+    textTransform: "uppercase",
   },
   menuItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 15,
+    backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
+    paddingHorizontal: 10,
   },
   menuItemInner: {
     flexDirection: "row",
+    alignItems: "center",
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    justifyContent: "center",
     alignItems: "center",
   },
   menuText: {

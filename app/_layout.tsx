@@ -46,6 +46,7 @@ export default function RootLayout() {
           <Stack.Screen name="admin" />
           <Stack.Screen name="cart" />
           <Stack.Screen name="tienda" />
+          <Stack.Screen name="stores" />
           <Stack.Screen name="categorias" />
           <Stack.Screen name="+not-found" />
         </Stack>

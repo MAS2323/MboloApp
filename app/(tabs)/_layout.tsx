@@ -1,8 +1,6 @@
 import { Tabs } from "expo-router";
 import React from "react";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import AntDesign from "@expo/vector-icons/AntDesign";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { COLORS } from "@/constants/theme";
 export default function TabLayout() {
   return (
@@ -25,11 +23,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="AllStoreScreen"
         options={{
-          title: "Tiendas",
+          title: "Explorar",
           headerTitleAlign: "center",
           headerShown: true,
           tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name="shopping-cart" color={color} />
+            <Ionicons size={28} name="grid" color={color} />
           ),
         }}
       />

@@ -6,33 +6,30 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { COLORS } from "../../constants/theme";
 
-const BusinessInfoScreen = () => {
+export default function CompanyDetailsScreen() {
   const router = useRouter();
-
   const menuItems = [
     {
-      label: "Nombre de la empresa, descripción y enlaces",
-      onPress: () => router.push("/stores/CompanyDetailsScreen"),
+      label: "Crear una tienda",
+      href: "/stores/CrearTiendaScreen",
     },
     {
-      label: "Dirección de la tienda y horarios comerciales",
-      onPress: () => router.push("/stores/StoreDetailsScreen"),
-    },
-    {
-      label: "Entrega",
-      onPress: () => router.push("/stores/DeliveryDetailsScreen"),
+      label: "Crear una cuenta profesional",
+      href: "/create-professional-account",
     },
   ];
 
-  const renderMenuItem = (label, onPress) => (
-    <TouchableOpacity onPress={onPress} style={styles.menuItem}>
-      <Text style={styles.menuText}>{label}</Text>
-      <MaterialIcons name="chevron-right" size={24} color={COLORS.gray} />
-    </TouchableOpacity>
+  const renderMenuItem = (label, href) => (
+    <Link href={href} asChild>
+      <TouchableOpacity style={styles.menuItem}>
+        <Text style={styles.menuText}>{label}</Text>
+        <MaterialIcons name="chevron-right" size={24} color={COLORS.gray} />
+      </TouchableOpacity>
+    </Link>
   );
 
   return (
@@ -41,17 +38,15 @@ const BusinessInfoScreen = () => {
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialIcons name="chevron-left" size={30} color="#00C853" />
         </TouchableOpacity>
-        <Text style={styles.headerText}>Detalles del negocio</Text>
+        <Text style={styles.headerText}>Opciones de Negocio</Text>
       </View>
 
       {menuItems.map((item, index) => (
-        <View key={index}>{renderMenuItem(item.label, item.onPress)}</View>
+        <View key={index}>{renderMenuItem(item.label, item.href)}</View>
       ))}
     </SafeAreaView>
   );
-};
-
-export default BusinessInfoScreen;
+}
 
 const styles = StyleSheet.create({
   container: {

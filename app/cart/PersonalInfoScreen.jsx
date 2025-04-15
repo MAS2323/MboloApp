@@ -18,8 +18,109 @@ import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { API_BASE_URL } from "../../config/Service.Config";
-import { useRouter, useFocusEffect } from "expo-router"; // Agregar useFocusEffect
+import { useRouter, useFocusEffect } from "expo-router";
 import { MaterialIcons, FontAwesome } from "@expo/vector-icons";
+
+// Componente para el header
+const Header = ({ onBack, title }) => (
+  <View style={styles.header}>
+    <TouchableOpacity onPress={onBack}>
+      <MaterialIcons name="chevron-left" size={30} color="#00C853" />
+    </TouchableOpacity>
+    <Text style={styles.headerText}>{title}</Text>
+    <TouchableOpacity style={styles.savedButton} disabled>
+      <Text style={styles.savedButtonText}>Guardado</Text>
+    </TouchableOpacity>
+  </View>
+);
+
+// Componente para el avatar
+const AvatarSection = ({ image, onPickImage }) => (
+  <View style={styles.avatarContainer}>
+    <TouchableOpacity onPress={onPickImage}>
+      <Image
+        source={
+          image
+            ? { uri: image }
+            : require("./../../assets/images/placeholderImage.png")
+        }
+        style={styles.image}
+      />
+      <View style={styles.editBadge}>
+        <Text style={styles.editBadgeText}>EDITAR</Text>
+      </View>
+    </TouchableOpacity>
+    <View style={styles.approvedContainer}>
+      <MaterialIcons name="check-circle" size={20} color="#00C853" />
+      <Text style={styles.approvedText}>aprobado</Text>
+    </View>
+  </View>
+);
+
+// Componente para los campos de entrada
+const InputField = ({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  onPress,
+  editable = true,
+}) => (
+  <View>
+    <Text style={styles.label}>{label}</Text>
+    {editable ? (
+      <TextInput
+        style={styles.input}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor="#B0BEC5"
+      />
+    ) : (
+      <TouchableOpacity style={styles.dropdown} onPress={onPress}>
+        <Text style={styles.dropdownText}>{value || placeholder}</Text>
+        <MaterialIcons name="arrow-drop-down" size={24} color="#757575" />
+      </TouchableOpacity>
+    )}
+  </View>
+);
+
+// Componente para la sección de redes sociales
+const SocialMediaSection = ({
+  facebookConnected,
+  setFacebookConnected,
+  googleConnected,
+  setGoogleConnected,
+}) => (
+  <View style={styles.socialMediaSection}>
+    <View style={styles.socialMediaMessage}>
+      <MaterialIcons name="waving-hand" size={24} color="#000" />
+      <Text style={styles.socialMediaText}>
+        ¡Conecta tus cuentas de redes sociales para una experiencia más fluida!
+      </Text>
+    </View>
+    <View style={styles.socialMediaItem}>
+      <FontAwesome name="facebook" size={24} color="#3b5998" />
+      <Text style={styles.socialMediaLabel}>Facebook</Text>
+      <Switch
+        value={facebookConnected}
+        onValueChange={setFacebookConnected}
+        trackColor={{ false: "#767577", true: "#00C853" }}
+        thumbColor={facebookConnected ? "#fff" : "#f4f3f4"}
+      />
+    </View>
+    <View style={styles.socialMediaItem}>
+      <FontAwesome name="google" size={24} color="#DB4437" />
+      <Text style={styles.socialMediaLabel}>Google</Text>
+      <Switch
+        value={googleConnected}
+        onValueChange={setGoogleConnected}
+        trackColor={{ false: "#767577", true: "#00C853" }}
+        thumbColor={googleConnected ? "#fff" : "#f4f3f4"}
+      />
+    </View>
+  </View>
+);
 
 const PersonalInfoScreen = () => {
   const [userId, setUserId] = useState(null);
@@ -38,8 +139,8 @@ const PersonalInfoScreen = () => {
 
   const router = useRouter();
 
-  // Verificar usuario existente y cargar datos desde AsyncStorage
-  const checkExistingUser = useCallback(async () => {
+  // Cargar datos desde AsyncStorage
+  const loadUserData = useCallback(async () => {
     try {
       const id = await AsyncStorage.getItem("id");
       if (!id) {
@@ -47,7 +148,6 @@ const PersonalInfoScreen = () => {
         return;
       }
       const parsedId = JSON.parse(id);
-      console.log("ID almacenado en AsyncStorage:", parsedId);
       const userKey = `user${parsedId}`;
       const currentUser = await AsyncStorage.getItem(userKey);
       if (currentUser) {
@@ -61,7 +161,7 @@ const PersonalInfoScreen = () => {
           parsedUserData.lastName || nameParts.slice(1).join(" ") || ""
         );
         setLocation(
-          parsedUserData.location || parsedUserData.ciudad?.name || ""
+          parsedUserData.ciudad?.name || parsedUserData.location || ""
         );
         setBirthday(parsedUserData.birthday || "");
         setSex(parsedUserData.sex || "No especificar");
@@ -74,24 +174,22 @@ const PersonalInfoScreen = () => {
     } catch (error) {
       setIsLoggedIn(false);
       setLoading(false);
-      console.error("Error al recuperar tus datos:", error);
       router.navigate("LoginScreen");
     }
-  }, [router]); // Dependencias de useCallback
+  }, [router]);
 
-  // Cargar datos al montar el componente
+  // Cargar datos al montar y al volver a enfocar
   useEffect(() => {
-    checkExistingUser();
-  }, [checkExistingUser]);
+    loadUserData();
+  }, [loadUserData]);
 
-  // Recargar datos cuando la pantalla vuelve a estar en foco
   useFocusEffect(
     useCallback(() => {
-      checkExistingUser();
-    }, [checkExistingUser])
+      loadUserData();
+    }, [loadUserData])
   );
 
-  // Seleccionar una imagen de la galería
+  // Seleccionar imagen
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -101,12 +199,11 @@ const PersonalInfoScreen = () => {
     });
 
     if (!result.canceled) {
-      const uri = result.assets[0].uri;
-      setImage(uri);
+      setImage(result.assets[0].uri);
     }
   };
 
-  // Manejar el cambio de fecha
+  // Manejar cambio de fecha
   const handleDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
     if (selectedDate) {
@@ -119,65 +216,65 @@ const PersonalInfoScreen = () => {
     }
   };
 
-  // Mostrar el date picker
-  const showDatePickerModal = () => {
-    setShowDatePicker(true);
-  };
-
-  // Actualizar el perfil del usuario
+  // Actualizar perfil
   const handleUpdateProfile = async () => {
-    if (!firstName || !lastName) {
-      Alert.alert("Error", "El nombre y el apellido son obligatorios");
+    // Validaciones
+    if (!firstName.trim()) {
+      Alert.alert("Error", "El nombre es obligatorio");
+      return;
+    }
+    if (!lastName.trim()) {
+      Alert.alert("Error", "El apellido es obligatorio");
+      return;
+    }
+    if (birthday && !/^\d{2}\/\d{2}\/\d{4}$/.test(birthday)) {
+      Alert.alert(
+        "Error",
+        "La fecha de nacimiento debe tener el formato DD/MM/YYYY"
+      );
       return;
     }
 
     const formData = new FormData();
-    const userName = `${firstName}`.trim();
-    formData.append("userName", userName);
-    formData.append("lastName", lastName);
-    formData.append("location", userData?.ciudad?.name || location || "");
-    formData.append("birthday", birthday);
-    formData.append("sex", sex);
+    formData.append("userName", firstName.trim());
+    formData.append("lastName", lastName.trim());
+    formData.append("location", location || "");
+    formData.append("birthday", birthday || "");
+    formData.append("sex", sex || "No especificar");
 
     if (image && image.startsWith("file://")) {
       const filename = image.split("/").pop();
       const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : `image`;
-
-      formData.append("image", {
-        uri: image,
-        name: filename,
-        type,
-      });
+      const type = match ? `image/${match[1]}` : "image";
+      formData.append("image", { uri: image, name: filename, type });
     }
 
     try {
-      console.log("Actualizando perfil para userId:", userId);
+      console.log("Enviando datos al backend:", {
+        userName: firstName.trim(),
+        lastName: lastName.trim(),
+        location,
+        birthday,
+        sex,
+      });
       const response = await axios.put(
         `${API_BASE_URL}/user/${userId}`,
         formData,
         {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
+          headers: { "Content-Type": "multipart/form-data" },
         }
       );
       console.log("Respuesta del backend:", response.data);
 
-      // Actualizar los datos del usuario con la respuesta del backend
       const updatedUser = response.data.user;
       if (updatedUser) {
         setUserData(updatedUser);
-        const fullName = updatedUser.userName || "";
-        const nameParts = fullName.split(" ");
-        setFirstName(nameParts[0] || "");
-        setLastName(updatedUser.lastName || nameParts.slice(1).join(" ") || "");
+        setFirstName(updatedUser.userName?.split(" ")[0] || "");
+        setLastName(updatedUser.lastName || "");
         setLocation(updatedUser.ciudad?.name || updatedUser.location || "");
         setBirthday(updatedUser.birthday || "");
         setSex(updatedUser.sex || "No especificar");
         setImage(updatedUser.image?.url || "");
-
-        // Actualizar AsyncStorage con los nuevos datos
         await AsyncStorage.setItem(
           `user${userId}`,
           JSON.stringify(updatedUser)
@@ -197,6 +294,7 @@ const PersonalInfoScreen = () => {
     }
   };
 
+  // Renderizar estados de carga o no autenticado
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -211,79 +309,41 @@ const PersonalInfoScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <MaterialIcons name="chevron-left" size={30} color="#00C853" />
-        </TouchableOpacity>
-        <Text style={styles.headerText}>Detalles personales</Text>
-        <TouchableOpacity style={styles.savedButton} disabled>
-          <Text style={styles.savedButtonText}>Guardado</Text>
-        </TouchableOpacity>
-      </View>
-
+      <Header onBack={() => router.back()} title="Detalles personales" />
       <KeyboardAvoidingView
         style={styles.scrollWrapper}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.select({ ios: 0, android: 500 })}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.avatarContainer}>
-            <TouchableOpacity onPress={pickImage}>
-              <Image
-                source={
-                  image
-                    ? { uri: image }
-                    : require("./../../assets/images/placeholderImage.png")
-                }
-                style={styles.image}
-              />
-              <View style={styles.editBadge}>
-                <Text style={styles.editBadgeText}>EDITAR</Text>
-              </View>
-            </TouchableOpacity>
-            <View style={styles.approvedContainer}>
-              <MaterialIcons name="check-circle" size={20} color="#00C853" />
-              <Text style={styles.approvedText}>aprobado</Text>
-            </View>
-          </View>
-
+          <AvatarSection image={image} onPickImage={pickImage} />
           <View style={styles.formContainer}>
-            <Text style={styles.label}>Nombre*</Text>
-            <TextInput
-              style={styles.input}
+            <InputField
+              label="Nombre*"
               value={firstName}
               onChangeText={setFirstName}
               placeholder="Ingresa tu nombre"
             />
-
-            <Text style={styles.label}>Apellido*</Text>
-            <TextInput
-              style={styles.input}
+            <InputField
+              label="Apellido*"
               value={lastName}
               onChangeText={setLastName}
               placeholder="Ingresa tu apellido"
             />
-
-            <Text style={styles.label}>Ubicación</Text>
-            <TouchableOpacity
-              style={styles.dropdown}
-              onPress={() => router.push("/cart/SelectCityScreen")}
-            >
-              <Text style={styles.dropdownText}>
-                {userData?.ciudad?.name || "Seleccionar ubicación"}
-              </Text>
-              <MaterialIcons name="arrow-drop-down" size={24} color="#757575" />
-            </TouchableOpacity>
-
-            <Text style={styles.label}>Fecha de nacimiento</Text>
-            <TouchableOpacity
-              style={styles.input}
-              onPress={showDatePickerModal}
-            >
-              <Text style={styles.inputText}>
-                {birthday || "Selecciona tu fecha de nacimiento"}
-              </Text>
-            </TouchableOpacity>
+            <InputField
+              label="Ubicación"
+              value={location || userData?.ciudad?.name}
+              placeholder="Seleccionar ubicación"
+              onPress={() => router.push("/cart/SelectCityScreen")} // Ruta corregida
+              editable={false}
+            />
+            <InputField
+              label="Fecha de nacimiento"
+              value={birthday}
+              placeholder="Selecciona tu fecha de nacimiento"
+              onPress={() => setShowDatePicker(true)}
+              editable={false}
+            />
             {showDatePicker && (
               <DateTimePicker
                 value={
@@ -297,48 +357,19 @@ const PersonalInfoScreen = () => {
                 maximumDate={new Date()}
               />
             )}
-
-            <Text style={styles.label}>Sexo</Text>
-            <TouchableOpacity
-              style={styles.dropdown}
+            <InputField
+              label="Sexo"
+              value={sex}
+              placeholder="Seleccionar sexo"
               onPress={() => router.push("/cart/SelectSexScreen")} // Ruta corregida
-            >
-              <Text style={styles.dropdownText}>
-                {sex || "Seleccionar sexo"}
-              </Text>
-              <MaterialIcons name="arrow-drop-down" size={24} color="#757575" />
-            </TouchableOpacity>
-
-            <View style={styles.socialMediaSection}>
-              <View style={styles.socialMediaMessage}>
-                <MaterialIcons name="waving-hand" size={24} color="#000" />
-                <Text style={styles.socialMediaText}>
-                  ¡Conecta tus cuentas de redes sociales para una experiencia
-                  más fluida!
-                </Text>
-              </View>
-              <View style={styles.socialMediaItem}>
-                <FontAwesome name="facebook" size={24} color="#3b5998" />
-                <Text style={styles.socialMediaLabel}>Facebook</Text>
-                <Switch
-                  value={isFacebookConnected}
-                  onValueChange={setIsFacebookConnected}
-                  trackColor={{ false: "#767577", true: "#00C853" }}
-                  thumbColor={isFacebookConnected ? "#fff" : "#f4f3f4"}
-                />
-              </View>
-              <View style={styles.socialMediaItem}>
-                <FontAwesome name="google" size={24} color="#DB4437" />
-                <Text style={styles.socialMediaLabel}>Google</Text>
-                <Switch
-                  value={isGoogleConnected}
-                  onValueChange={setIsGoogleConnected}
-                  trackColor={{ false: "#767577", true: "#00C853" }}
-                  thumbColor={isGoogleConnected ? "#fff" : "#f4f3f4"}
-                />
-              </View>
-            </View>
-
+              editable={false}
+            />
+            <SocialMediaSection
+              facebookConnected={isFacebookConnected}
+              setFacebookConnected={setIsFacebookConnected}
+              googleConnected={isGoogleConnected}
+              setGoogleConnected={setIsGoogleConnected}
+            />
             <TouchableOpacity
               style={styles.saveButton}
               onPress={handleUpdateProfile}

@@ -115,8 +115,10 @@ export default function PerfilScreen() {
 
   const menuItems = [
     {
-      icon: <MaterialIcons name="description" size={24} color={COLORS.black} />,
-      label: "Mis anuncios",
+      icon: (
+        <MaterialIcons name="shopping-cart" size={24} color={COLORS.black} />
+      ),
+      label: "Mi carrito",
       onPress: () => router.push("/cart/CartScreen"),
     },
     {
@@ -124,7 +126,7 @@ export default function PerfilScreen() {
         <MaterialIcons name="notifications" size={24} color={COLORS.black} />
       ),
       label: "Notificaciones",
-      onPress: () => router.push("/cart/ArchivoScreen"),
+      onPress: () => router.push("/cart/NotificacionesScreen"),
     },
     {
       icon: <MaterialIcons name="feedback" size={24} color={COLORS.black} />,
