@@ -199,7 +199,7 @@ const EditarTiendaScreen = () => {
       await AsyncStorage.setItem("store_data", JSON.stringify(updatedStore));
 
       Alert.alert("Éxito", "Tienda actualizada correctamente");
-      router.push("/create-store");
+      router.push("/stores/CrearTiendaScreen");
     } catch (error) {
       console.error(
         "Error al actualizar tienda:",

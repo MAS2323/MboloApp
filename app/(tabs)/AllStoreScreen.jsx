@@ -90,7 +90,7 @@ const AllStoreScreen = () => {
   return (
     <View style={styles.container}>
       {/* Menú de navegación responsive */}
-      <ScrollView
+      {/* <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.menuNavContainer}
@@ -114,7 +114,7 @@ const AllStoreScreen = () => {
             </Text>
           </TouchableOpacity>
         ))}
-      </ScrollView>
+      </ScrollView> */}
 
       {/* Lista de tiendas responsive */}
       <FlatList

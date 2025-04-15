@@ -44,7 +44,6 @@ export default function Layout() {
         <Stack.Screen name="SearchTile" />
         <Stack.Screen name="ProductEdition" />
         <Stack.Screen name="tendenciaGalleryScreen" />
-        <Stack.Screen name="stores" />
         {/* Otras rutas */}
       </Stack>
     </GestureHandlerRootView>

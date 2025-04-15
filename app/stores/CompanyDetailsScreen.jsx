@@ -19,7 +19,7 @@ export default function CompanyDetailsScreen() {
     },
     {
       label: "Crear una cuenta profesional",
-      href: "/create-professional-account",
+      href: "/stores/CreateProfessionalAccount",
     },
   ];
 

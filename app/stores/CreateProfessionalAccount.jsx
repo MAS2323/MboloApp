@@ -19,87 +19,162 @@ import { useFocusEffect } from "@react-navigation/native";
 import axios from "axios";
 import { API_BASE_URL } from "../../config/Service.Config";
 
-const CrearTiendaScreen = () => {
+const CreateProfessionalAccount = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [formData, setFormData] = useState({
     name: "",
-    description: "",
+    email: "",
     phone_number: "",
-    address: "",
-    specific_location: "",
+    description: "",
     owner: "",
+    category: "",
+    categoryName: "",
+    subcategory: "",
+    subcategoryName: "",
   });
-  const [logo, setLogo] = useState(null);
-  const [banner, setBanner] = useState(null);
+  const [avatar, setAvatar] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [existingStore, setExistingStore] = useState(null);
+  const [existingAccount, setExistingAccount] = useState(null);
   const [userId, setUserId] = useState(null);
   const [userName, setUserName] = useState("");
 
-  // Función para verificar la existencia de una tienda
-  const checkStore = async (userId, forceFetch = false) => {
+  // Cargar selecciones previas desde AsyncStorage al montar el componente
+  useEffect(() => {
+    const loadSelections = async () => {
+      try {
+        const storedCategory = await AsyncStorage.getItem("selectedCategory");
+        const storedSubcategory = await AsyncStorage.getItem(
+          "selectedSubcategory"
+        );
+        if (storedCategory && storedSubcategory) {
+          const category = JSON.parse(storedCategory);
+          const subcategory = JSON.parse(storedSubcategory);
+          setFormData((prev) => ({
+            ...prev,
+            category: category._id,
+            categoryName: category.name,
+            subcategory: subcategory._id,
+            subcategoryName: subcategory.name,
+          }));
+        }
+      } catch (error) {
+        console.error("Error al cargar selecciones previas:", error);
+      }
+    };
+    loadSelections();
+  }, []);
+
+  // Actualizar formData con los valores de categoría y subcategoría desde params
+  useEffect(() => {
+    if (
+      params?.categoryId &&
+      params?.categoryName &&
+      params?.subcategoryId &&
+      params?.subcategoryName &&
+      // Evitar actualizaciones redundantes
+      (formData.category !== params.categoryId ||
+        formData.categoryName !== params.categoryName ||
+        formData.subcategory !== params.subcategoryId ||
+        formData.subcategoryName !== params.subcategoryName)
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        category: params.categoryId,
+        categoryName: params.categoryName,
+        subcategory: params.subcategoryId,
+        subcategoryName: params.subcategoryName,
+      }));
+
+      // Guardar en AsyncStorage para persistencia (usamos una función async para evitar problemas)
+      const saveSelections = async () => {
+        try {
+          await AsyncStorage.setItem(
+            "selectedCategory",
+            JSON.stringify({
+              _id: params.categoryId,
+              name: params.categoryName,
+            })
+          );
+          await AsyncStorage.setItem(
+            "selectedSubcategory",
+            JSON.stringify({
+              _id: params.subcategoryId,
+              name: params.subcategoryName,
+            })
+          );
+        } catch (error) {
+          console.error("Error al guardar selecciones en AsyncStorage:", error);
+        }
+      };
+      saveSelections();
+    }
+  }, [params, formData]); // Agregamos formData como dependencia para comparar valores
+
+  // Función para verificar la existencia de una cuenta profesional
+  const checkAccount = async (userId, forceFetch = false) => {
     try {
-      // Intentar cargar datos locales si no se fuerza una consulta al backend
       if (!forceFetch) {
-        const storedData = await AsyncStorage.getItem("store_data");
+        const storedData = await AsyncStorage.getItem("professional_data");
         if (storedData) {
           const parsedData = JSON.parse(storedData);
-          // Validar que los datos locales tengan todos los campos necesarios
           if (
             parsedData &&
             parsedData.id &&
             parsedData.name &&
-            parsedData.description &&
+            parsedData.email &&
             parsedData.phone_number &&
-            parsedData.address &&
-            parsedData.specific_location &&
+            parsedData.description &&
             parsedData.owner === userId
           ) {
-            setExistingStore(parsedData);
+            setExistingAccount(parsedData);
             setIsLoading(false);
             return;
           }
         }
       }
 
-      // Si no hay datos locales válidos o se fuerza la consulta, consultar el backend
       const response = await axios.get(
-        `${API_BASE_URL}/tienda/owner/${userId}`
+        `${API_BASE_URL}/professional/owner/${userId}`
       );
       if (response.data) {
-        const storeData = {
+        const accountData = {
           id: response.data._id,
           name: response.data.name,
-          description: response.data.description,
+          email: response.data.email,
           phone_number: response.data.phone_number,
-          address: response.data.address?.name || "",
-          specific_location: response.data.specific_location,
+          description: response.data.description,
           owner: userId,
           ownerName: response.data.owner?.userName || userName || "",
-          logo: response.data.logo?.url,
-          banner: response.data.banner?.url,
+          avatar: response.data.avatar?.url,
+          category: response.data.category?.id || "",
+          categoryName: response.data.category?.name || "",
+          subcategory: response.data.subcategory?.id || "",
+          subcategoryName: response.data.subcategory?.name || "",
         };
-        setExistingStore(storeData);
-        await AsyncStorage.setItem("store_data", JSON.stringify(storeData));
+        setExistingAccount(accountData);
+        await AsyncStorage.setItem(
+          "professional_data",
+          JSON.stringify(accountData)
+        );
       } else {
-        setExistingStore(null);
-        await AsyncStorage.removeItem("store_data");
+        setExistingAccount(null);
+        await AsyncStorage.removeItem("professional_data");
       }
     } catch (error) {
       if (error.response?.status === 404) {
-        setExistingStore(null);
-        await AsyncStorage.removeItem("store_data");
+        setExistingAccount(null);
+        await AsyncStorage.removeItem("professional_data");
       } else if (error.response?.status === 400) {
         Alert.alert("Error", "El ID del usuario no es válido.");
         await AsyncStorage.removeItem("id");
         router.navigate("LoginScreen");
       } else {
-        console.error("Error al verificar tienda:", error);
+        console.error("Error al verificar cuenta profesional:", error);
         Alert.alert(
           "Error",
-          "No se pudo verificar si tienes una tienda. Intenta de nuevo."
+          "No se pudo verificar si tienes una cuenta profesional. Intenta de nuevo."
         );
       }
     } finally {
@@ -112,10 +187,12 @@ const CrearTiendaScreen = () => {
     const loadInitialData = async () => {
       try {
         setIsLoading(true);
-        // Cargar userId
         const id = await AsyncStorage.getItem("id");
         if (!id) {
-          Alert.alert("Error", "Debes iniciar sesión para crear una tienda.");
+          Alert.alert(
+            "Error",
+            "Debes iniciar sesión para crear una cuenta profesional."
+          );
           router.navigate("LoginScreen");
           return;
         }
@@ -132,25 +209,21 @@ const CrearTiendaScreen = () => {
         setUserId(parsedId);
         setFormData((prev) => ({ ...prev, owner: parsedId }));
 
-        // Cargar userName y ciudad
         const userData = await AsyncStorage.getItem(`user${parsedId}`);
         if (userData) {
           const parsedUserData = JSON.parse(userData);
           setUserName(parsedUserData.userName || "");
-          if (parsedUserData?.ciudad?.name) {
-            setFormData((prev) => ({
-              ...prev,
-              address: parsedUserData.ciudad.name,
-            }));
-          }
+          setFormData((prev) => ({
+            ...prev,
+            email: parsedUserData.email || "",
+          }));
         } else {
           Alert.alert("Error", "Datos de usuario no encontrados.");
           router.navigate("LoginScreen");
           return;
         }
 
-        // Verificar tienda
-        await checkStore(parsedId);
+        await checkAccount(parsedId);
       } catch (error) {
         console.error("Error al cargar datos iniciales:", error);
         Alert.alert("Error", "No se pudieron cargar los datos iniciales.");
@@ -160,24 +233,23 @@ const CrearTiendaScreen = () => {
     loadInitialData();
   }, []);
 
-  // Verificar tienda cada vez que la pantalla recibe foco
+  // Verificar cuenta cada vez que la pantalla recibe foco
   useFocusEffect(
     useCallback(() => {
       if (userId) {
         setIsLoading(true);
-        // Forzar consulta al backend solo si la tienda fue eliminada
-        checkStore(userId, params?.storeDeleted === "true");
+        checkAccount(userId, params?.accountDeleted === "true");
       }
-    }, [userId, userName, params?.storeDeleted])
+    }, [userId, userName, params?.accountDeleted])
   );
 
-  // Verificar si la tienda fue eliminada
+  // Verificar si la cuenta fue eliminada
   useEffect(() => {
-    if (params?.storeDeleted === "true") {
-      setExistingStore(null);
-      AsyncStorage.removeItem("store_data");
+    if (params?.accountDeleted === "true") {
+      setExistingAccount(null);
+      AsyncStorage.removeItem("professional_data");
     }
-  }, [params?.storeDeleted]);
+  }, [params?.accountDeleted]);
 
   const handleChange = (name, value) => {
     setFormData({
@@ -186,20 +258,16 @@ const CrearTiendaScreen = () => {
     });
   };
 
-  const pickImage = async (type) => {
-    if (type === "logo" && logo) {
-      Alert.alert("Límite alcanzado", "Solo se permite subir un logo.");
-      return;
-    }
-    if (type === "banner" && banner) {
-      Alert.alert("Límite alcanzado", "Solo se permite subir un banner.");
+  const pickImage = async () => {
+    if (avatar) {
+      Alert.alert("Límite alcanzado", "Solo se permite subir un avatar.");
       return;
     }
 
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: type === "logo" ? [1, 1] : [4, 1],
+      aspect: [1, 1],
       quality: 1,
     });
 
@@ -213,11 +281,7 @@ const CrearTiendaScreen = () => {
             (error) => reject(error)
           );
         });
-        if (type === "logo") {
-          setLogo(uri);
-        } else {
-          setBanner(uri);
-        }
+        setAvatar(uri);
       } catch (error) {
         console.error("Error al validar imagen:", error);
         Alert.alert("Error", "No se pudo cargar la imagen seleccionada.");
@@ -225,24 +289,20 @@ const CrearTiendaScreen = () => {
     }
   };
 
-  const removeImage = (type) => {
-    if (type === "logo") {
-      setLogo(null);
-    } else {
-      setBanner(null);
-    }
+  const removeImage = () => {
+    setAvatar(null);
   };
 
   const handleSubmit = async () => {
     const missingFields = [];
     if (!formData.name) missingFields.push("Nombre");
-    if (!formData.description) missingFields.push("Descripción");
+    if (!formData.email) missingFields.push("Email");
     if (!formData.phone_number) missingFields.push("Teléfono");
-    if (!formData.address) missingFields.push("Dirección");
-    if (!formData.specific_location) missingFields.push("Ubicación específica");
+    if (!formData.description) missingFields.push("Descripción");
     if (!formData.owner) missingFields.push("Propietario");
-    if (!logo) missingFields.push("Logo");
-    if (!banner) missingFields.push("Banner");
+    if (!formData.category) missingFields.push("Categoría");
+    if (!formData.subcategory) missingFields.push("Subcategoría");
+    if (!avatar) missingFields.push("Avatar");
 
     if (missingFields.length > 0) {
       Alert.alert(
@@ -255,41 +315,25 @@ const CrearTiendaScreen = () => {
     setLoading(true);
 
     try {
-      const userData = await AsyncStorage.getItem(`user${userId}`);
-      if (!userData) {
-        throw new Error("Datos de usuario no encontrados.");
-      }
-      const parsedUserData = JSON.parse(userData);
-      const addressId = parsedUserData?.ciudad?.id;
-      if (!addressId) {
-        throw new Error("No se ha seleccionado una ciudad válida.");
-      }
-
       const formDataToSend = new FormData();
       formDataToSend.append("name", formData.name);
-      formDataToSend.append("description", formData.description);
+      formDataToSend.append("email", formData.email);
       formDataToSend.append("phone_number", formData.phone_number);
-      formDataToSend.append("address", addressId);
-      formDataToSend.append("specific_location", formData.specific_location);
+      formDataToSend.append("description", formData.description);
       formDataToSend.append("owner", userId);
+      formDataToSend.append("category", formData.category);
+      formDataToSend.append("subcategory", formData.subcategory);
 
-      if (logo) {
-        formDataToSend.append("logo", {
-          uri: logo,
-          name: `logo_${userId}.jpg`,
-          type: "image/jpeg",
-        });
-      }
-      if (banner) {
-        formDataToSend.append("banner", {
-          uri: banner,
-          name: `banner_${userId}.jpg`,
+      if (avatar) {
+        formDataToSend.append("avatar", {
+          uri: avatar,
+          name: `avatar_${userId}.jpg`,
           type: "image/jpeg",
         });
       }
 
       const response = await axios.post(
-        `${API_BASE_URL}/tienda`,
+        `${API_BASE_URL}/professional`,
         formDataToSend,
         {
           headers: {
@@ -298,77 +342,85 @@ const CrearTiendaScreen = () => {
         }
       );
 
-      const storeData = {
-        id: response.data.tienda._id,
+      const accountData = {
+        id: response.data.professional._id,
         name: formData.name,
-        description: formData.description,
+        email: formData.email,
         phone_number: formData.phone_number,
-        address: formData.address,
-        specific_location: formData.specific_location,
+        description: formData.description,
         owner: userId,
         ownerName: userName,
-        logo: response.data.tienda.logo.url,
-        banner: response.data.tienda.banner.url,
+        avatar: response.data.professional.avatar?.url,
+        category: formData.category,
+        categoryName: formData.categoryName,
+        subcategory: formData.subcategory,
+        subcategoryName: formData.subcategoryName,
       };
-      await AsyncStorage.setItem("store_data", JSON.stringify(storeData));
-      setExistingStore(storeData);
+      await AsyncStorage.setItem(
+        "professional_data",
+        JSON.stringify(accountData)
+      );
+      setExistingAccount(accountData);
 
-      // Limpiar el formulario
+      // Limpiar el formulario y AsyncStorage de selecciones
       setFormData({
         name: "",
-        description: "",
+        email: formData.email,
         phone_number: "",
-        address: formData.address,
-        specific_location: "",
+        description: "",
         owner: userId,
+        category: "",
+        categoryName: "",
+        subcategory: "",
+        subcategoryName: "",
       });
-      setLogo(null);
-      setBanner(null);
+      setAvatar(null);
+      await AsyncStorage.removeItem("selectedCategory");
+      await AsyncStorage.removeItem("selectedSubcategory");
 
-      Alert.alert("Éxito", "Tienda creada correctamente");
+      Alert.alert("Éxito", "Cuenta profesional creada correctamente");
     } catch (error) {
       console.error(
-        "Error al crear tienda:",
+        "Error al crear cuenta profesional:",
         error.response?.data || error.message
       );
       Alert.alert(
         "Error",
         error.response?.data?.message ||
-          "No se pudo crear la tienda. Intenta de nuevo."
+          "No se pudo crear la cuenta profesional. Intenta de nuevo."
       );
     } finally {
       setLoading(false);
     }
   };
 
-  // Componente para mostrar los detalles de la tienda
-  const StoreCard = ({ store }) => (
+  // Componente para mostrar los detalles de la cuenta profesional
+  const AccountCard = ({ account }) => (
     <TouchableOpacity
       style={styles.cardContainer}
       onPress={() =>
         router.push({
-          pathname: "/stores/EditarTiendaScreen",
-          params: { store: JSON.stringify(store) },
+          pathname: "/professionals/EditProfessionalAccount",
+          params: { account: JSON.stringify(account) },
         })
       }
     >
-      <Text style={styles.cardTitle}>{store.name}</Text>
-      {store.banner && (
-        <Image source={{ uri: store.banner }} style={styles.bannerPreview} />
-      )}
-      {store.logo && (
-        <Image source={{ uri: store.logo }} style={styles.imagePreview} />
+      <Text style={styles.cardTitle}>{account.name}</Text>
+      {account.avatar && (
+        <Image source={{ uri: account.avatar }} style={styles.imagePreview} />
       )}
       <Text style={styles.cardLabel}>Propietario:</Text>
-      <Text style={styles.cardText}>{store.ownerName}</Text>
-      <Text style={styles.cardLabel}>Descripción:</Text>
-      <Text style={styles.cardText}>{store.description}</Text>
+      <Text style={styles.cardText}>{account.ownerName}</Text>
+      <Text style={styles.cardLabel}>Email:</Text>
+      <Text style={styles.cardText}>{account.email}</Text>
       <Text style={styles.cardLabel}>Teléfono:</Text>
-      <Text style={styles.cardText}>{store.phone_number}</Text>
-      <Text style={styles.cardLabel}>Dirección:</Text>
-      <Text style={styles.cardText}>{store.address}</Text>
-      <Text style={styles.cardLabel}>Ubicación específica:</Text>
-      <Text style={styles.cardText}>{store.specific_location}</Text>
+      <Text style={styles.cardText}>{account.phone_number}</Text>
+      <Text style={styles.cardLabel}>Categoría:</Text>
+      <Text style={styles.cardText}>{account.categoryName}</Text>
+      <Text style={styles.cardLabel}>Subcategoría:</Text>
+      <Text style={styles.cardText}>{account.subcategoryName}</Text>
+      <Text style={styles.cardLabel}>Descripción:</Text>
+      <Text style={styles.cardText}>{account.description}</Text>
     </TouchableOpacity>
   );
 
@@ -383,31 +435,33 @@ const CrearTiendaScreen = () => {
     );
   }
 
-  // Renderizar StoreCard si existe una tienda
-  if (existingStore) {
+  // Renderizar AccountCard si existe una cuenta profesional
+  if (existingAccount) {
     return (
       <SafeAreaView style={styles.safeContainer}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
             <MaterialIcons name="chevron-left" size={30} color="#00C853" />
           </TouchableOpacity>
-          <Text style={styles.headerText}>Detalles de la Tienda</Text>
+          <Text style={styles.headerText}>
+            Detalles de la Cuenta Profesional
+          </Text>
         </View>
         <ScrollView contentContainerStyle={styles.container}>
-          <StoreCard store={existingStore} />
+          <AccountCard account={existingAccount} />
         </ScrollView>
       </SafeAreaView>
     );
   }
 
-  // Renderizar formulario si no hay tienda
+  // Renderizar formulario si no hay cuenta profesional
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialIcons name="chevron-left" size={30} color="#00C853" />
         </TouchableOpacity>
-        <Text style={styles.headerText}>Crear Nueva Tienda</Text>
+        <Text style={styles.headerText}>Crear Cuenta Profesional</Text>
       </View>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.inputGroup}>
@@ -421,25 +475,56 @@ const CrearTiendaScreen = () => {
           />
         </View>
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Nombre de la tienda*</Text>
+          <Text style={styles.label}>Categoría y Subcategoría*</Text>
+          <TouchableOpacity
+            style={[
+              styles.categoryPicker,
+              formData.categoryName &&
+                formData.subcategoryName &&
+                styles.categoryPickerSelected,
+            ]}
+            onPress={() =>
+              router.push({
+                pathname: "/stores/CategorySelectionScreen",
+                params: { returnScreen: "CreateProfessionalAccount" },
+              })
+            }
+          >
+            <Text
+              style={[
+                styles.categoryPickerText,
+                formData.categoryName &&
+                  formData.subcategoryName &&
+                  styles.categoryPickerTextSelected,
+              ]}
+            >
+              {formData.categoryName && formData.subcategoryName
+                ? `${formData.categoryName} - ${formData.subcategoryName}`
+                : "Seleccionar Categoría y Subcategoría"}
+            </Text>
+            <MaterialIcons name="chevron-right" size={24} color="#A0A0A0" />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Nombre profesional*</Text>
           <TextInput
             style={styles.input}
             value={formData.name}
             onChangeText={(text) => handleChange("name", text)}
-            placeholder="Ej: GD Tienda"
+            placeholder="Ej: Juan Pérez Profesional"
             placeholderTextColor="#A0A0A0"
           />
         </View>
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Descripción*</Text>
+          <Text style={styles.label}>Email*</Text>
           <TextInput
-            style={[styles.input, styles.multilineInput]}
-            value={formData.description}
-            onChangeText={(text) => handleChange("description", text)}
-            placeholder="Describe tu tienda"
+            style={styles.input}
+            value={formData.email}
+            onChangeText={(text) => handleChange("email", text)}
+            placeholder="Ej: profesional@ejemplo.com"
             placeholderTextColor="#A0A0A0"
-            multiline
-            numberOfLines={4}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
         </View>
         <View style={styles.inputGroup}>
@@ -454,47 +539,40 @@ const CrearTiendaScreen = () => {
           />
         </View>
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Dirección*</Text>
+          <Text style={styles.label}>Descripción*</Text>
           <TextInput
-            style={[styles.input, styles.disabledInput]}
-            value={formData.address}
-            editable={false}
-            placeholder="Guinea Ecuatorial"
+            style={[styles.input, styles.multilineInput]}
+            value={formData.description}
+            onChangeText={(text) => handleChange("description", text)}
+            placeholder="Describe tus servicios profesionales"
             placeholderTextColor="#A0A0A0"
+            multiline
+            numberOfLines={4}
           />
         </View>
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>
-            Ubicación específica (barrio, calle, zona)*
-          </Text>
-          <TextInput
-            style={styles.input}
-            value={formData.specific_location}
-            onChangeText={(text) => handleChange("specific_location", text)}
-            placeholder="Ej: Barrio Central, Calle Principal"
-            placeholderTextColor="#A0A0A0"
-          />
-        </View>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Logo de la tienda*</Text>
+          <Text style={styles.label}>Avatar*</Text>
           <TouchableOpacity
             style={styles.imagePicker}
-            onPress={() => pickImage("logo")}
+            onPress={() => pickImage()}
           >
-            {logo ? (
+            {avatar ? (
               <View style={styles.imageContainer}>
                 <Image
-                  source={{ uri: logo }}
+                  source={{ uri: avatar }}
                   style={styles.imagePreview}
-                  key={logo}
+                  key={avatar}
                   onError={(e) => {
-                    console.error("Error cargando logo:", e.nativeEvent.error);
-                    Alert.alert("Error", "No se pudo cargar el logo.");
+                    console.error(
+                      "Error cargando avatar:",
+                      e.nativeEvent.error
+                    );
+                    Alert.alert("Error", "No se pudo cargar el avatar.");
                   }}
                 />
                 <TouchableOpacity
                   style={styles.deleteButton}
-                  onPress={() => removeImage("logo")}
+                  onPress={() => removeImage()}
                 >
                   <MaterialIcons name="delete" size={24} color="#FF0000" />
                 </TouchableOpacity>
@@ -503,44 +581,7 @@ const CrearTiendaScreen = () => {
               <View style={styles.imagePlaceholder}>
                 <MaterialIcons name="image" size={40} color="#A0A0A0" />
                 <Text style={styles.imagePickerText}>
-                  Seleccionar Logo (1:1)
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Banner de la tienda*</Text>
-          <TouchableOpacity
-            style={styles.imagePicker}
-            onPress={() => pickImage("banner")}
-          >
-            {banner ? (
-              <View style={styles.imageContainer}>
-                <Image
-                  source={{ uri: banner }}
-                  style={styles.bannerPreview}
-                  key={banner}
-                  onError={(e) => {
-                    console.error(
-                      "Error cargando banner:",
-                      e.nativeEvent.error
-                    );
-                    Alert.alert("Error", "No se pudo cargar el banner.");
-                  }}
-                />
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={() => removeImage("banner")}
-                >
-                  <MaterialIcons name="delete" size={24} color="#FF0000" />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.imagePlaceholder}>
-                <MaterialIcons name="panorama" size={40} color="#A0A0A0" />
-                <Text style={styles.imagePickerText}>
-                  Seleccionar Banner (4:1)
+                  Seleccionar Avatar (1:1)
                 </Text>
               </View>
             )}
@@ -551,9 +592,9 @@ const CrearTiendaScreen = () => {
           onPress={handleSubmit}
           disabled={loading}
         >
-          <MaterialIcons name="store" size={24} color="#FFFFFF" />
+          <MaterialIcons name="work" size={24} color="#FFFFFF" />
           <Text style={styles.submitButtonText}>
-            {loading ? "Creando..." : "Crear Tienda"}
+            {loading ? "Creando..." : "Crear Cuenta Profesional"}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -617,6 +658,28 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: "top",
   },
+  categoryPicker: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  categoryPickerSelected: {
+    backgroundColor: "#e3f2fd",
+    borderColor: "#00C853",
+  },
+  categoryPickerText: {
+    fontSize: 16,
+    color: "#1A1A1A",
+  },
+  categoryPickerTextSelected: {
+    color: "#00C853",
+    fontWeight: "500",
+  },
   imagePicker: {
     borderRadius: 8,
     backgroundColor: "#FFFFFF",
@@ -643,11 +706,6 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 8,
-    resizeMode: "contain",
-  },
-  bannerPreview: {
-    width: "100%",
-    aspectRatio: 4 / 1,
     resizeMode: "contain",
   },
   deleteButton: {
@@ -687,11 +745,11 @@ const styles = StyleSheet.create({
     padding: 15,
     borderWidth: 1,
     borderColor: "#E0E0E0",
-    // shadowColor: "#000",
-    // shadowOffset: { width: 0, height: 2 },
-    // shadowOpacity: 0.2,
-    // shadowRadius: 4,
-    // elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   cardTitle: {
     fontSize: 20,
@@ -712,4 +770,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CrearTiendaScreen;
+export default CreateProfessionalAccount;
