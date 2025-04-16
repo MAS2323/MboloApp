@@ -21,7 +21,7 @@ import axios from "axios";
 import { COLORS } from "./../../constants/theme";
 import { API_BASE_URL } from "./../../config/Service.Config";
 import { useRouter } from "expo-router";
-
+import * as FileSystem from "expo-file-system";
 // Header Component
 const Header = ({ onBack, title }) => (
   <View style={styles.header}>
@@ -162,6 +162,38 @@ const SettingsScreen = () => {
       console.error("Error al eliminar la cuenta:", error);
     }
   };
+  // Función ajustada para limpiar el caché
+  const clearCache = async () => {
+    try {
+      // Limpiar datos de AsyncStorage
+      await AsyncStorage.clear();
+      console.log("AsyncStorage limpiado correctamente.");
+
+      // Limpiar archivos temporales en FileSystem.cacheDirectory
+      const cacheDir = FileSystem.cacheDirectory;
+      if (cacheDir) {
+        const dirInfo = await FileSystem.getInfoAsync(cacheDir);
+        if (dirInfo.exists && dirInfo.isDirectory) {
+          // Obtener lista de archivos en el directorio de caché
+          const files = await FileSystem.readDirectoryAsync(cacheDir);
+          // Eliminar cada archivo de manera segura
+          for (const file of files) {
+            const filePath = `${cacheDir}${file}`;
+            const fileInfo = await FileSystem.getInfoAsync(filePath);
+            if (fileInfo.exists) {
+              await FileSystem.deleteAsync(filePath, { idempotent: true });
+              console.log(`Archivo eliminado: ${filePath}`);
+            }
+          }
+        }
+      }
+
+      Alert.alert("Éxito", "El caché ha sido limpiado correctamente.");
+    } catch (error) {
+      console.error("Error al limpiar el caché:", error);
+      Alert.alert("Error", "No se pudo limpiar el caché. Intenta de nuevo.");
+    }
+  };
 
   useEffect(() => {
     setTimeout(() => {
@@ -220,14 +252,14 @@ const SettingsScreen = () => {
     {
       title: "Preferencias",
       data: [
-        {
-          icon: <MaterialIcons name="chat" size={24} />,
-          label: "Desactivar chat",
-          onPress: () => router.push("/cart/DisableChatScreen"),
-          additionalInfo: "Habilitado",
-          iconColor: COLORS.white,
-          iconBackgroundColor: "#00C853",
-        },
+        // {
+        //   icon: <MaterialIcons name="chat" size={24} />,
+        //   label: "Desactivar chat",
+        //   onPress: () => router.push("/cart/DisableChatScreen"),
+        //   additionalInfo: "Habilitado",
+        //   iconColor: COLORS.white,
+        //   iconBackgroundColor: "#00C853",
+        // },
         {
           icon: <MaterialIcons name="feedback" size={24} />,
           label: "Desactivar comentarios",
@@ -256,11 +288,11 @@ const SettingsScreen = () => {
           iconBackgroundColor: "#212121",
         },
         {
-          icon: <FontAwesome name="star" size={24} />,
-          label: "Califícanos",
-          onPress: () => router.push("/profile/RateUsScreen"),
-          iconColor: COLORS.white,
-          iconBackgroundColor: "#212121",
+          icon: <MaterialIcons name="cached" size={24} />,
+          label: "Limpiar caché",
+          onPress: () => clearCache(),
+          iconColor: COLORS.gray,
+          iconBackgroundColor: "#E0E0E0",
         },
         {
           icon: <MaterialIcons name="delete" size={24} />,

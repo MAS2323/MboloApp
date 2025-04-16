@@ -6,6 +6,8 @@ import {
   ActivityIndicator,
   FlatList,
   TouchableOpacity,
+  Modal,
+  ScrollView,
 } from "react-native";
 import React, { useEffect, useState, useCallback } from "react";
 import { useLocalSearchParams } from "expo-router";
@@ -13,6 +15,21 @@ import { API_BASE_URL } from "../../config/Service.Config";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 import Header from "../../components/Home/Header";
+
+// Colores definidos (usando la paleta original proporcionada)
+const COLORS = {
+  primary: "#4c86A8",
+  secondary: "#DDF0FF",
+  tertiary: "#FF7754",
+  gray: "#83829A",
+  gray2: "#C1C0C8",
+  offwhite: "#F3F4F8",
+  white: "#FFFFFF",
+  black: "#000000",
+  red: "#e81e4d",
+  green: "#00C135",
+  lightwhite: "#FAFAFC",
+};
 
 const TiendaDetalle = () => {
   const { id } = useLocalSearchParams();
@@ -22,7 +39,8 @@ const TiendaDetalle = () => {
   const [pestañaActiva, setPestañaActiva] = useState("recomendados");
   const [productos, setProductos] = useState([]);
   const [visibleProductos, setVisibleProductos] = useState([]);
-  const [isLoadingMore, setIsLoadingMore] = useState(false); // Para el loading de más productos
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
 
   // Cargar datos de la tienda
   useEffect(() => {
@@ -30,7 +48,21 @@ const TiendaDetalle = () => {
       try {
         const url = `${API_BASE_URL}/tienda/${id}`;
         const response = await axios.get(url);
-        setTienda(response.data);
+        const data = response.data;
+
+        const tiendaData = {
+          banner: { url: data.banner?.url },
+          logo: { url: data.logo?.url },
+          name: data.name,
+          descripcion: data.description,
+          telefono: data.phone_number,
+          direccion: data.address?.name || "No disponible",
+          specific_location: data.specific_location,
+          propietario: data.owner?.userName || "Anónimo",
+          owner: data.owner,
+        };
+
+        setTienda(tiendaData);
         setLoading(false);
       } catch (err) {
         console.error("Error al cargar la tienda:", err.message);
@@ -42,11 +74,10 @@ const TiendaDetalle = () => {
     cargarTienda();
   }, [id]);
 
-  // Simulación de carga inicial de productos (reemplazar con API real si existe)
+  // Simulación de carga inicial de productos
   useEffect(() => {
     const cargarProductosIniciales = async () => {
       try {
-        // Simulación de datos iniciales (puedes reemplazar con una llamada a la API)
         const productosIniciales = [
           {
             id: 1,
@@ -74,7 +105,7 @@ const TiendaDetalle = () => {
           },
         ];
         setProductos(productosIniciales);
-        setVisibleProductos(productosIniciales.slice(0, 2)); // Carga inicial: 2 productos
+        setVisibleProductos(productosIniciales.slice(0, 2));
       } catch (err) {
         console.error("Error al cargar productos iniciales:", err.message);
       }
@@ -87,15 +118,14 @@ const TiendaDetalle = () => {
   const loadMoreProductos = useCallback(() => {
     if (visibleProductos.length < productos.length && !isLoadingMore) {
       setIsLoadingMore(true);
-      // Simulación de carga desde la base de datos (reemplazar con API real si existe)
       setTimeout(() => {
         const nextProductos = productos.slice(
           visibleProductos.length,
           visibleProductos.length + 2
-        ); // Cargar 2 productos a la vez
+        );
         setVisibleProductos((prev) => [...prev, ...nextProductos]);
         setIsLoadingMore(false);
-      }, 1000); // Retraso para simular llamada a la API
+      }, 1000);
     }
   }, [visibleProductos, productos, isLoadingMore]);
 
@@ -135,22 +165,26 @@ const TiendaDetalle = () => {
     []
   );
 
-  // Componente para el indicador de carga en el footer
   const renderFooter = useCallback(() => {
     return isLoadingMore ? (
       <View style={styles.contenedorCarga}>
-        <ActivityIndicator size="large" color="#4c86A8" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     ) : null;
   }, [isLoadingMore]);
 
-  // Componente para el encabezado de la lista
   const ListHeader = () => (
     <>
       {/* Banner de la tienda */}
-      {tienda?.banner?.url && (
-        <Image source={{ uri: tienda.banner.url }} style={styles.banner} />
-      )}
+      <TouchableOpacity onPress={() => setModalVisible(true)}>
+        {tienda?.banner?.url ? (
+          <Image source={{ uri: tienda.banner.url }} style={styles.banner} />
+        ) : (
+          <View style={[styles.banner, styles.placeholderImage]}>
+            <Ionicons name="panorama-outline" size={40} color={COLORS.gray} />
+          </View>
+        )}
+      </TouchableOpacity>
 
       {/* Encabezado con logo y nombre */}
       <View style={styles.encabezado}>
@@ -214,7 +248,7 @@ const TiendaDetalle = () => {
   if (loading) {
     return (
       <View style={styles.contenedorCarga}>
-        <ActivityIndicator size="large" color="#4c86A8" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -239,15 +273,76 @@ const TiendaDetalle = () => {
         ListHeaderComponent={ListHeader}
         contentContainerStyle={styles.listaProductos}
         showsVerticalScrollIndicator={false}
-        // Carga progresiva
-        initialNumToRender={2} // Renderiza solo 2 productos inicialmente
-        maxToRenderPerBatch={2} // Renderiza 2 productos por lote
-        windowSize={5} // Mantiene 5 elementos en memoria
-        removeClippedSubviews={true} // Elimina elementos fuera de pantalla
-        onEndReached={loadMoreProductos} // Carga más al llegar al final
-        onEndReachedThreshold={0.5} // Dispara carga al 50% del final
-        ListFooterComponent={renderFooter} // Indicador de carga
+        initialNumToRender={2}
+        maxToRenderPerBatch={2}
+        windowSize={5}
+        removeClippedSubviews={true}
+        onEndReached={loadMoreProductos}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={renderFooter}
       />
+
+      {/* Modal para mostrar el banner y los detalles */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          {tienda?.banner?.url ? (
+            <Image
+              source={{ uri: tienda.banner.url }}
+              style={styles.modalBannerBackground}
+              blurRadius={5}
+            />
+          ) : (
+            <View
+              style={[styles.modalBannerBackground, styles.placeholderImage]}
+            >
+              <Ionicons name="panorama-outline" size={40} color={COLORS.gray} />
+            </View>
+          )}
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalLogoContainer}>
+                {tienda?.logo?.url && (
+                  <Image
+                    source={{ uri: tienda.logo.url }}
+                    style={styles.modalLogo}
+                  />
+                )}
+                <Text style={styles.modalTitle}>{tienda.name}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Ionicons name="close" size={24} color={COLORS.white} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalDetailsContainer}>
+              <View style={styles.tiendaDetails}>
+                <Text style={styles.tiendaLabel}>Descripción:</Text>
+                <Text style={styles.tiendaText}>{tienda.descripcion}</Text>
+                <Text style={styles.tiendaLabel}>Teléfono:</Text>
+                <Text style={styles.tiendaText}>{tienda.telefono}</Text>
+                <Text style={styles.tiendaLabel}>Dirección:</Text>
+                <Text style={styles.tiendaText}>{tienda.direccion}</Text>
+                {tienda.specific_location && (
+                  <>
+                    <Text style={styles.tiendaLabel}>
+                      Ubicación Específica:
+                    </Text>
+                    <Text style={styles.tiendaText}>
+                      {tienda.specific_location}
+                    </Text>
+                  </>
+                )}
+                <Text style={styles.tiendaLabel}>Propietario:</Text>
+                <Text style={styles.tiendaText}>{tienda.propietario}</Text>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -255,61 +350,74 @@ const TiendaDetalle = () => {
 const styles = StyleSheet.create({
   contenedor: {
     flex: 1,
+    backgroundColor: COLORS.offwhite, // Usando offwhite de la paleta original
     marginTop: 30,
   },
   contenedorCarga: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: COLORS.offwhite,
   },
   contenedorError: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+    backgroundColor: COLORS.offwhite,
   },
   textoError: {
     fontSize: 16,
-    color: "#ff4d4f",
+    color: COLORS.red,
     textAlign: "center",
   },
   encabezado: {
     padding: 15,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    backgroundColor: COLORS.white, // Fondo blanco semi-transparente
+    borderRadius: 10,
+    marginHorizontal: 10,
+    marginVertical: 10,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   infoTienda: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 15,
   },
   logo: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: "#eee",
+    marginRight: 15,
+    borderWidth: 2,
+    borderColor: COLORS.primary, // Borde usando primary (azul)
   },
   datosTienda: {
     flex: 1,
   },
   nombreTienda: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "bold",
-    color: "#333",
-    marginBottom: 4,
+    color: COLORS.black,
+    marginBottom: 5,
   },
   propietarioTienda: {
     fontSize: 14,
-    color: "#666",
+    color: COLORS.gray,
   },
   estadisticas: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 12,
-    paddingHorizontal: 20,
+    justifyContent: "space-around",
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    backgroundColor: COLORS.white,
+    borderRadius: 8,
+    marginHorizontal: 10,
+    marginBottom: 10,
   },
   itemEstadistica: {
     alignItems: "center",
@@ -317,40 +425,44 @@ const styles = StyleSheet.create({
   valorEstadistica: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#ff4d4f",
+    color: COLORS.black,
+    marginBottom: 3,
   },
   etiquetaEstadistica: {
     fontSize: 12,
-    color: "#666",
-    marginTop: 4,
+    color: COLORS.gray,
   },
   banner: {
     width: "100%",
     height: 180,
     resizeMode: "cover",
+    borderRadius: 10,
+    marginVertical: 10,
   },
   contenedorPestañas: {
     flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
     marginHorizontal: 10,
+    marginVertical: 10,
+    paddingVertical: 5,
+    backgroundColor: COLORS.white,
+    borderRadius: 8,
   },
   pestaña: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
+    paddingVertical: 10,
   },
   pestañaActiva: {
-    borderBottomColor: "#ff4d4f",
+    borderBottomWidth: 2,
+    borderBottomColor: COLORS.primary, // Línea usando primary (azul)
   },
   textoPestaña: {
     fontSize: 14,
-    color: "#666",
+    color: COLORS.gray,
+    fontWeight: "600",
   },
   textoPestañaActiva: {
-    color: "#ff4d4f",
+    color: COLORS.primary,
     fontWeight: "bold",
   },
   listaProductos: {
@@ -358,12 +470,12 @@ const styles = StyleSheet.create({
   },
   tarjetaProducto: {
     flexDirection: "row",
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.white,
     borderRadius: 10,
     marginBottom: 12,
     padding: 12,
     marginHorizontal: 10,
-    shadowColor: "#000",
+    shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -382,17 +494,17 @@ const styles = StyleSheet.create({
   tituloProducto: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#333",
+    color: COLORS.black,
     marginBottom: 4,
   },
   descripcionProducto: {
     fontSize: 13,
-    color: "#666",
+    color: COLORS.gray,
     marginBottom: 8,
   },
   etiquetaNuevo: {
     alignSelf: "flex-start",
-    backgroundColor: "#ff4d4f",
+    backgroundColor: COLORS.primary, // Usando primary (azul)
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -400,7 +512,7 @@ const styles = StyleSheet.create({
   },
   textoEtiquetaNuevo: {
     fontSize: 10,
-    color: "#fff",
+    color: COLORS.white,
     fontWeight: "bold",
   },
   metaProducto: {
@@ -414,17 +526,17 @@ const styles = StyleSheet.create({
   },
   ventasProducto: {
     fontSize: 12,
-    color: "#ff4d4f",
+    color: COLORS.red,
     marginBottom: 4,
   },
   envioRapido: {
     fontSize: 11,
-    color: "#4CAF50",
+    color: COLORS.green,
   },
   precioProducto: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#ff4d4f",
+    color: COLORS.red,
   },
   valoracionContainer: {
     flexDirection: "row",
@@ -433,8 +545,71 @@ const styles = StyleSheet.create({
   },
   textoValoracion: {
     fontSize: 14,
-    color: "#666",
+    color: COLORS.gray,
     marginLeft: 4,
+  },
+  placeholderImage: {
+    backgroundColor: COLORS.lightwhite,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  // Estilos para el modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalBannerBackground: {
+    ...StyleSheet.absoluteFillObject,
+    resizeMode: "cover",
+  },
+  modalContent: {
+    width: "90%",
+    backgroundColor: "rgba(255, 255, 255, 0.9)", // Fondo semi-transparente
+    borderRadius: 12,
+    maxHeight: "80%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 15,
+  },
+  modalLogoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  modalLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+    borderWidth: 2,
+    borderColor: COLORS.primary, // Borde usando primary (azul)
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: COLORS.black,
+  },
+  modalDetailsContainer: {
+    padding: 15,
+  },
+  tiendaDetails: {
+    padding: 10,
+  },
+  tiendaLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.black,
+    marginTop: 10,
+    marginBottom: 5,
+  },
+  tiendaText: {
+    fontSize: 16,
+    color: COLORS.gray,
+    lineHeight: 22,
   },
 });
 

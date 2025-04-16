@@ -14,6 +14,7 @@ import Toast from "react-native-toast-message";
 import { StatusBar } from "expo-status-bar";
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Octicons from "@expo/vector-icons/Octicons";
 import { COLORS } from "./../../constants/theme";
 import { useRouter } from "expo-router";
 
@@ -118,7 +119,7 @@ export default function PerfilScreen() {
       icon: (
         <MaterialIcons name="shopping-cart" size={24} color={COLORS.black} />
       ),
-      label: "Mi carrito",
+      label: "Carrito",
       onPress: () => router.push("/cart/CartScreen"),
     },
     {
@@ -129,19 +130,25 @@ export default function PerfilScreen() {
       onPress: () => router.push("/cart/NotificacionesScreen"),
     },
     {
-      icon: <MaterialIcons name="feedback" size={24} color={COLORS.black} />,
-      label: "Comentarios",
-      onPress: () => router.push("/cart/SobreNosotrosScreen"),
+      icon: <MaterialIcons name="reorder" size={24} color={COLORS.black} />,
+      label: "Pedidos",
+      onPress: () => router.push("/cart/MisPedidosScreen"),
+    },
+    {
+      icon: (
+        <MaterialIcons
+          name="store-mall-directory"
+          size={24}
+          color={COLORS.black}
+        />
+      ),
+      label: "Mi Tienda",
+      onPress: () => router.push("/cart/MiTiendaScreen"),
     },
     {
       icon: <MaterialIcons name="people" size={24} color={COLORS.black} />,
       label: "Seguidores",
-      onPress: () => router.push("/cart/SobreNosotrosScreen"),
-    },
-    {
-      icon: <MaterialIcons name="help" size={24} color={COLORS.black} />,
-      label: "Preguntas frecuentes",
-      onPress: () => router.push("/cart/SobreNosotrosScreen"),
+      onPress: () => router.push("/cart/SeguidoresScreen"),
     },
   ];
 

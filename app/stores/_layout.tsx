@@ -19,6 +19,7 @@ export default function Layout() {
         <Stack.Screen name="CapitalOwnershipSelectionScreen" />
         <Stack.Screen name="CompanySizeSelectionScreen" />
         <Stack.Screen name="LegalFormSelectionScreen" />
+        <Stack.Screen name="AddDeliveryOptionScreen" />
         {/* Otras rutas */}
       </Stack>
     </GestureHandlerRootView>

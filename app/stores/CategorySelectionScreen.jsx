@@ -80,7 +80,7 @@ const CategorySelectionScreen = () => {
   const handleSubcategoryPress = (subcategory) => {
     setSelectedSubcategory(subcategory);
     // Reemplazar la pantalla actual con /stores/CreateProfessionalAccount y pasar las selecciones
-    router.replace({
+    router.push({
       pathname: "/stores/CreateProfessionalAccount",
       params: {
         categoryId: selectedCategory._id,
