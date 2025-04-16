@@ -16,6 +16,9 @@ export default function Layout() {
         <Stack.Screen name="EditarTiendaScreen" />
         <Stack.Screen name="CreateProfessionalAccount" />
         <Stack.Screen name="CategorySelectionScreen" />
+        <Stack.Screen name="CapitalOwnershipSelectionScreen" />
+        <Stack.Screen name="CompanySizeSelectionScreen" />
+        <Stack.Screen name="LegalFormSelectionScreen" />
         {/* Otras rutas */}
       </Stack>
     </GestureHandlerRootView>

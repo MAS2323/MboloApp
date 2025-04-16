@@ -23,15 +23,33 @@ const CreateProfessionalAccount = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [formData, setFormData] = useState({
-    name: "",
+    name: "E.G. BLUE SEA MALESTI LOPEZ",
     email: "",
     phone_number: "",
-    description: "",
+    description: "MANTENIMIENTO DE INMUEBLES",
     owner: "",
     category: "",
     categoryName: "",
     subcategory: "",
     subcategoryName: "",
+    address: "",
+    addressDetails: "",
+    capitalOwnership: "",
+    capitalOwnershipDisplay: "",
+    companySize: "",
+    companySizeDisplay: "",
+    legalForm: "",
+    legalFormDisplay: "",
+    economicSector: "",
+    economicSectorDisplay: "",
+    operationScope: "",
+    operationScopeDisplay: "",
+    socialCapital: "1,000,000 FCFA",
+    numberOfEstablishments: "1",
+    numberOfEmployees: "12",
+    nif: "038446EG-24",
+    expedientNumber: "05069/2024",
+    certificateNumber: "3025",
   });
   const [avatar, setAvatar] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -48,6 +66,21 @@ const CreateProfessionalAccount = () => {
         const storedSubcategory = await AsyncStorage.getItem(
           "selectedSubcategory"
         );
+        const storedAddress = await AsyncStorage.getItem("selectedAddress");
+        const storedCapitalOwnership = await AsyncStorage.getItem(
+          "selectedCapitalOwnership"
+        );
+        const storedCompanySize = await AsyncStorage.getItem(
+          "selectedCompanySize"
+        );
+        const storedLegalForm = await AsyncStorage.getItem("selectedLegalForm");
+        const storedEconomicSector = await AsyncStorage.getItem(
+          "selectedEconomicSector"
+        );
+        const storedOperationScope = await AsyncStorage.getItem(
+          "selectedOperationScope"
+        );
+
         if (storedCategory && storedSubcategory) {
           const category = JSON.parse(storedCategory);
           const subcategory = JSON.parse(storedSubcategory);
@@ -59,6 +92,64 @@ const CreateProfessionalAccount = () => {
             subcategoryName: subcategory.name,
           }));
         }
+
+        if (storedAddress) {
+          const address = JSON.parse(storedAddress);
+          setFormData((prev) => ({
+            ...prev,
+            address: address._id,
+            addressDetails: `${address.street}, ${address.city}, ${
+              address.state
+            }, ${address.country}${
+              address.postalCode ? `, ${address.postalCode}` : ""
+            }`,
+          }));
+        }
+
+        if (storedCapitalOwnership) {
+          const capitalOwnership = JSON.parse(storedCapitalOwnership);
+          setFormData((prev) => ({
+            ...prev,
+            capitalOwnership: capitalOwnership.value,
+            capitalOwnershipDisplay: capitalOwnership.display,
+          }));
+        }
+
+        if (storedCompanySize) {
+          const companySize = JSON.parse(storedCompanySize);
+          setFormData((prev) => ({
+            ...prev,
+            companySize: companySize.value,
+            companySizeDisplay: companySize.display,
+          }));
+        }
+
+        if (storedLegalForm) {
+          const legalForm = JSON.parse(storedLegalForm);
+          setFormData((prev) => ({
+            ...prev,
+            legalForm: legalForm.value,
+            legalFormDisplay: legalForm.display,
+          }));
+        }
+
+        if (storedEconomicSector) {
+          const economicSector = JSON.parse(storedEconomicSector);
+          setFormData((prev) => ({
+            ...prev,
+            economicSector: economicSector.value,
+            economicSectorDisplay: economicSector.display,
+          }));
+        }
+
+        if (storedOperationScope) {
+          const operationScope = JSON.parse(storedOperationScope);
+          setFormData((prev) => ({
+            ...prev,
+            operationScope: operationScope.value,
+            operationScopeDisplay: operationScope.display,
+          }));
+        }
       } catch (error) {
         console.error("Error al cargar selecciones previas:", error);
       }
@@ -66,29 +157,27 @@ const CreateProfessionalAccount = () => {
     loadSelections();
   }, []);
 
-  // Actualizar formData con los valores de categoría y subcategoría desde params
+  // Actualizar formData con los valores desde params
   useEffect(() => {
-    if (
-      params?.categoryId &&
-      params?.categoryName &&
-      params?.subcategoryId &&
-      params?.subcategoryName &&
-      // Evitar actualizaciones redundantes
-      (formData.category !== params.categoryId ||
-        formData.categoryName !== params.categoryName ||
-        formData.subcategory !== params.subcategoryId ||
-        formData.subcategoryName !== params.subcategoryName)
-    ) {
-      setFormData((prev) => ({
-        ...prev,
-        category: params.categoryId,
-        categoryName: params.categoryName,
-        subcategory: params.subcategoryId,
-        subcategoryName: params.subcategoryName,
-      }));
+    const updateFormDataFromParams = async () => {
+      const updates = {};
 
-      // Guardar en AsyncStorage para persistencia (usamos una función async para evitar problemas)
-      const saveSelections = async () => {
+      // Categoría y Subcategoría
+      if (
+        params?.categoryId &&
+        params?.categoryName &&
+        params?.subcategoryId &&
+        params?.subcategoryName &&
+        (formData.category !== params.categoryId ||
+          formData.categoryName !== params.categoryName ||
+          formData.subcategory !== params.subcategoryId ||
+          formData.subcategoryName !== params.subcategoryName)
+      ) {
+        updates.category = params.categoryId;
+        updates.categoryName = params.categoryName;
+        updates.subcategory = params.subcategoryId;
+        updates.subcategoryName = params.subcategoryName;
+
         try {
           await AsyncStorage.setItem(
             "selectedCategory",
@@ -107,10 +196,151 @@ const CreateProfessionalAccount = () => {
         } catch (error) {
           console.error("Error al guardar selecciones en AsyncStorage:", error);
         }
-      };
-      saveSelections();
-    }
-  }, [params, formData]); // Agregamos formData como dependencia para comparar valores
+      }
+
+      // Dirección
+      if (
+        params?.addressId &&
+        params?.addressDetails &&
+        formData.address !== params.addressId
+      ) {
+        updates.address = params.addressId;
+        updates.addressDetails = params.addressDetails;
+
+        try {
+          await AsyncStorage.setItem(
+            "selectedAddress",
+            JSON.stringify({
+              _id: params.addressId,
+              street: params.street || "",
+              city: params.city || "",
+              state: params.state || "",
+              country: params.country || "",
+              postalCode: params.postalCode || "",
+            })
+          );
+        } catch (error) {
+          console.error("Error al guardar dirección en AsyncStorage:", error);
+        }
+      }
+
+      // Propiedad del Capital
+      if (
+        params?.capitalOwnershipValue &&
+        params?.capitalOwnershipDisplay &&
+        formData.capitalOwnership !== params.capitalOwnershipValue
+      ) {
+        updates.capitalOwnership = params.capitalOwnershipValue;
+        updates.capitalOwnershipDisplay = params.capitalOwnershipDisplay;
+
+        try {
+          await AsyncStorage.setItem(
+            "selectedCapitalOwnership",
+            JSON.stringify({
+              value: params.capitalOwnershipValue,
+              display: params.capitalOwnershipDisplay,
+            })
+          );
+        } catch (error) {
+          console.error("Error al guardar propiedad del capital:", error);
+        }
+      }
+
+      // Tamaño de la Empresa
+      if (
+        params?.companySizeValue &&
+        params?.companySizeDisplay &&
+        formData.companySize !== params.companySizeValue
+      ) {
+        updates.companySize = params.companySizeValue;
+        updates.companySizeDisplay = params.companySizeDisplay;
+
+        try {
+          await AsyncStorage.setItem(
+            "selectedCompanySize",
+            JSON.stringify({
+              value: params.companySizeValue,
+              display: params.companySizeDisplay,
+            })
+          );
+        } catch (error) {
+          console.error("Error al guardar tamaño de la empresa:", error);
+        }
+      }
+
+      // Forma Jurídica
+      if (
+        params?.legalFormValue &&
+        params?.legalFormDisplay &&
+        formData.legalForm !== params.legalFormValue
+      ) {
+        updates.legalForm = params.legalFormValue;
+        updates.legalFormDisplay = params.legalFormDisplay;
+
+        try {
+          await AsyncStorage.setItem(
+            "selectedLegalForm",
+            JSON.stringify({
+              value: params.legalFormValue, // Corrección del error tipográfico
+              display: params.legalFormDisplay,
+            })
+          );
+        } catch (error) {
+          console.error("Error al guardar forma jurídica:", error);
+        }
+      }
+
+      // Sector Económico
+      if (
+        params?.economicSectorValue &&
+        params?.economicSectorDisplay &&
+        formData.economicSector !== params.economicSectorValue
+      ) {
+        updates.economicSector = params.economicSectorValue;
+        updates.economicSectorDisplay = params.economicSectorDisplay;
+
+        try {
+          await AsyncStorage.setItem(
+            "selectedEconomicSector",
+            JSON.stringify({
+              value: params.economicSectorValue,
+              display: params.economicSectorDisplay,
+            })
+          );
+        } catch (error) {
+          console.error("Error al guardar sector económico:", error);
+        }
+      }
+
+      // Ámbito de Actuación
+      if (
+        params?.operationScopeValue &&
+        params?.operationScopeDisplay &&
+        formData.operationScope !== params.operationScopeValue
+      ) {
+        updates.operationScope = params.operationScopeValue;
+        updates.operationScopeDisplay = params.operationScopeDisplay;
+
+        try {
+          await AsyncStorage.setItem(
+            "selectedOperationScope",
+            JSON.stringify({
+              value: params.operationScopeValue,
+              display: params.operationScopeDisplay,
+            })
+          );
+        } catch (error) {
+          console.error("Error al guardar ámbito de actuación:", error);
+        }
+      }
+
+      if (Object.keys(updates).length > 0) {
+        setFormData((prev) => ({ ...prev, ...updates }));
+      }
+    };
+
+    updateFormDataFromParams();
+  }, [params, formData]);
 
   // Función para verificar la existencia de una cuenta profesional
   const checkAccount = async (userId, forceFetch = false) => {
@@ -148,10 +378,33 @@ const CreateProfessionalAccount = () => {
           owner: userId,
           ownerName: response.data.owner?.userName || userName || "",
           avatar: response.data.avatar?.url,
-          category: response.data.category?.id || "",
+          category: response.data.category?._id || "",
           categoryName: response.data.category?.name || "",
-          subcategory: response.data.subcategory?.id || "",
+          subcategory: response.data.subcategory?._id || "",
           subcategoryName: response.data.subcategory?.name || "",
+          address: response.data.address?._id || "",
+          addressDetails: response.data.address
+            ? `${response.data.address.street}, ${
+                response.data.address.city
+              }, ${response.data.address.state}, ${
+                response.data.address.country
+              }${
+                response.data.address.postalCode
+                  ? `, ${response.data.address.postalCode}`
+                  : ""
+              }`
+            : "",
+          capitalOwnership: response.data.capitalOwnership || "",
+          companySize: response.data.companySize || "",
+          legalForm: response.data.legalForm || "",
+          economicSector: response.data.economicSector || "",
+          operationScope: response.data.operationScope || "",
+          socialCapital: response.data.socialCapital || "",
+          numberOfEstablishments: response.data.numberOfEstablishments || "",
+          numberOfEmployees: response.data.numberOfEmployees || "",
+          nif: response.data.nif || "",
+          expedientNumber: response.data.expedientNumber || "",
+          certificateNumber: response.data.certificateNumber || "",
         };
         setExistingAccount(accountData);
         await AsyncStorage.setItem(
@@ -169,6 +422,18 @@ const CreateProfessionalAccount = () => {
       } else if (error.response?.status === 400) {
         Alert.alert("Error", "El ID del usuario no es válido.");
         await AsyncStorage.removeItem("id");
+        // Limpiar todas las selecciones al cerrar sesión
+        await AsyncStorage.multiRemove([
+          "professional_data",
+          "selectedCategory",
+          "selectedSubcategory",
+          "selectedAddress",
+          "selectedCapitalOwnership",
+          "selectedCompanySize",
+          "selectedLegalForm",
+          "selectedEconomicSector",
+          "selectedOperationScope",
+        ]);
         router.navigate("LoginScreen");
       } else {
         console.error("Error al verificar cuenta profesional:", error);
@@ -199,6 +464,18 @@ const CreateProfessionalAccount = () => {
         const parsedId = JSON.parse(id);
         if (!parsedId || typeof parsedId !== "string") {
           await AsyncStorage.removeItem("id");
+          // Limpiar todas las selecciones al cerrar sesión
+          await AsyncStorage.multiRemove([
+            "professional_data",
+            "selectedCategory",
+            "selectedSubcategory",
+            "selectedAddress",
+            "selectedCapitalOwnership",
+            "selectedCompanySize",
+            "selectedLegalForm",
+            "selectedEconomicSector",
+            "selectedOperationScope",
+          ]);
           Alert.alert(
             "Error",
             "Sesión inválida. Por favor, inicia sesión de nuevo."
@@ -247,7 +524,17 @@ const CreateProfessionalAccount = () => {
   useEffect(() => {
     if (params?.accountDeleted === "true") {
       setExistingAccount(null);
-      AsyncStorage.removeItem("professional_data");
+      AsyncStorage.multiRemove([
+        "professional_data",
+        "selectedCategory",
+        "selectedSubcategory",
+        "selectedAddress",
+        "selectedCapitalOwnership",
+        "selectedCompanySize",
+        "selectedLegalForm",
+        "selectedEconomicSector",
+        "selectedOperationScope",
+      ]);
     }
   }, [params?.accountDeleted]);
 
@@ -302,6 +589,19 @@ const CreateProfessionalAccount = () => {
     if (!formData.owner) missingFields.push("Propietario");
     if (!formData.category) missingFields.push("Categoría");
     if (!formData.subcategory) missingFields.push("Subcategoría");
+    if (!formData.address) missingFields.push("Dirección");
+    if (!formData.capitalOwnership) missingFields.push("Propiedad del Capital");
+    if (!formData.companySize) missingFields.push("Tamaño de la Empresa");
+    if (!formData.legalForm) missingFields.push("Forma Jurídica");
+    if (!formData.economicSector) missingFields.push("Sector Económico");
+    if (!formData.operationScope) missingFields.push("Ámbito de Actuación");
+    if (!formData.socialCapital) missingFields.push("Capital Social");
+    if (!formData.numberOfEstablishments)
+      missingFields.push("Nº de Establecimientos");
+    if (!formData.numberOfEmployees) missingFields.push("Nº de Empleados");
+    if (!formData.nif) missingFields.push("NIF");
+    if (!formData.expedientNumber) missingFields.push("Nº de Expediente");
+    if (!formData.certificateNumber) missingFields.push("Nº de Certificado");
     if (!avatar) missingFields.push("Avatar");
 
     if (missingFields.length > 0) {
@@ -323,6 +623,21 @@ const CreateProfessionalAccount = () => {
       formDataToSend.append("owner", userId);
       formDataToSend.append("category", formData.category);
       formDataToSend.append("subcategory", formData.subcategory);
+      formDataToSend.append("address", formData.address);
+      formDataToSend.append("capitalOwnership", formData.capitalOwnership);
+      formDataToSend.append("companySize", formData.companySize);
+      formDataToSend.append("legalForm", formData.legalForm);
+      formDataToSend.append("economicSector", formData.economicSector);
+      formDataToSend.append("operationScope", formData.operationScope);
+      formDataToSend.append("socialCapital", formData.socialCapital);
+      formDataToSend.append(
+        "numberOfEstablishments",
+        formData.numberOfEstablishments
+      );
+      formDataToSend.append("numberOfEmployees", formData.numberOfEmployees);
+      formDataToSend.append("nif", formData.nif);
+      formDataToSend.append("expedientNumber", formData.expedientNumber);
+      formDataToSend.append("certificateNumber", formData.certificateNumber);
 
       if (avatar) {
         formDataToSend.append("avatar", {
@@ -355,6 +670,19 @@ const CreateProfessionalAccount = () => {
         categoryName: formData.categoryName,
         subcategory: formData.subcategory,
         subcategoryName: formData.subcategoryName,
+        address: formData.address,
+        addressDetails: formData.addressDetails,
+        capitalOwnership: formData.capitalOwnership,
+        companySize: formData.companySize,
+        legalForm: formData.legalForm,
+        economicSector: formData.economicSector,
+        operationScope: formData.operationScope,
+        socialCapital: formData.socialCapital,
+        numberOfEstablishments: formData.numberOfEstablishments,
+        numberOfEmployees: formData.numberOfEmployees,
+        nif: formData.nif,
+        expedientNumber: formData.expedientNumber,
+        certificateNumber: formData.certificateNumber,
       };
       await AsyncStorage.setItem(
         "professional_data",
@@ -373,10 +701,36 @@ const CreateProfessionalAccount = () => {
         categoryName: "",
         subcategory: "",
         subcategoryName: "",
+        address: "",
+        addressDetails: "",
+        capitalOwnership: "",
+        capitalOwnershipDisplay: "",
+        companySize: "",
+        companySizeDisplay: "",
+        legalForm: "",
+        legalFormDisplay: "",
+        economicSector: "",
+        economicSectorDisplay: "",
+        operationScope: "",
+        operationScopeDisplay: "",
+        socialCapital: "",
+        numberOfEstablishments: "",
+        numberOfEmployees: "",
+        nif: "",
+        expedientNumber: "",
+        certificateNumber: "",
       });
       setAvatar(null);
-      await AsyncStorage.removeItem("selectedCategory");
-      await AsyncStorage.removeItem("selectedSubcategory");
+      await AsyncStorage.multiRemove([
+        "selectedCategory",
+        "selectedSubcategory",
+        "selectedAddress",
+        "selectedCapitalOwnership",
+        "selectedCompanySize",
+        "selectedLegalForm",
+        "selectedEconomicSector",
+        "selectedOperationScope",
+      ]);
 
       Alert.alert("Éxito", "Cuenta profesional creada correctamente");
     } catch (error) {
@@ -419,6 +773,30 @@ const CreateProfessionalAccount = () => {
       <Text style={styles.cardText}>{account.categoryName}</Text>
       <Text style={styles.cardLabel}>Subcategoría:</Text>
       <Text style={styles.cardText}>{account.subcategoryName}</Text>
+      <Text style={styles.cardLabel}>Dirección:</Text>
+      <Text style={styles.cardText}>{account.addressDetails}</Text>
+      <Text style={styles.cardLabel}>Propiedad del Capital:</Text>
+      <Text style={styles.cardText}>{account.capitalOwnership}</Text>
+      <Text style={styles.cardLabel}>Tamaño de la Empresa:</Text>
+      <Text style={styles.cardText}>{account.companySize}</Text>
+      <Text style={styles.cardLabel}>Forma Jurídica:</Text>
+      <Text style={styles.cardText}>{account.legalForm}</Text>
+      <Text style={styles.cardLabel}>Sector Económico:</Text>
+      <Text style={styles.cardText}>{account.economicSector}</Text>
+      <Text style={styles.cardLabel}>Ámbito de Actuación:</Text>
+      <Text style={styles.cardText}>{account.operationScope}</Text>
+      <Text style={styles.cardLabel}>Capital Social:</Text>
+      <Text style={styles.cardText}>{account.socialCapital}</Text>
+      <Text style={styles.cardLabel}>Nº de Establecimientos:</Text>
+      <Text style={styles.cardText}>{account.numberOfEstablishments}</Text>
+      <Text style={styles.cardLabel}>Nº de Empleados:</Text>
+      <Text style={styles.cardText}>{account.numberOfEmployees}</Text>
+      <Text style={styles.cardLabel}>NIF:</Text>
+      <Text style={styles.cardText}>{account.nif}</Text>
+      <Text style={styles.cardLabel}>Nº de Expediente:</Text>
+      <Text style={styles.cardText}>{account.expedientNumber}</Text>
+      <Text style={styles.cardLabel}>Nº de Certificado:</Text>
+      <Text style={styles.cardText}>{account.certificateNumber}</Text>
       <Text style={styles.cardLabel}>Descripción:</Text>
       <Text style={styles.cardText}>{account.description}</Text>
     </TouchableOpacity>
@@ -478,13 +856,13 @@ const CreateProfessionalAccount = () => {
           <Text style={styles.label}>Categoría y Subcategoría*</Text>
           <TouchableOpacity
             style={[
-              styles.categoryPicker,
+              styles.selectionPicker,
               formData.categoryName &&
                 formData.subcategoryName &&
-                styles.categoryPickerSelected,
+                styles.selectionPickerSelected,
             ]}
             onPress={() =>
-              router.push({
+              router.replace({
                 pathname: "/stores/CategorySelectionScreen",
                 params: { returnScreen: "CreateProfessionalAccount" },
               })
@@ -492,15 +870,168 @@ const CreateProfessionalAccount = () => {
           >
             <Text
               style={[
-                styles.categoryPickerText,
+                styles.selectionPickerText,
                 formData.categoryName &&
                   formData.subcategoryName &&
-                  styles.categoryPickerTextSelected,
+                  styles.selectionPickerTextSelected,
               ]}
             >
               {formData.categoryName && formData.subcategoryName
                 ? `${formData.categoryName} - ${formData.subcategoryName}`
                 : "Seleccionar Categoría y Subcategoría"}
+            </Text>
+            <MaterialIcons name="chevron-right" size={24} color="#A0A0A0" />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Dirección*</Text>
+          <TouchableOpacity
+            style={[
+              styles.selectionPicker,
+              formData.address && styles.selectionPickerSelected,
+            ]}
+            onPress={() =>
+              router.push({
+                pathname: "/stores/SelectCityScreen",
+                params: { returnScreen: "CreateProfessionalAccount" },
+              })
+            }
+          >
+            <Text
+              style={[
+                styles.selectionPickerText,
+                formData.address && styles.selectionPickerTextSelected,
+              ]}
+            >
+              {formData.addressDetails || "Seleccionar Dirección"}
+            </Text>
+            <MaterialIcons name="chevron-right" size={24} color="#A0A0A0" />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Propiedad del Capital*</Text>
+          <TouchableOpacity
+            style={[
+              styles.selectionPicker,
+              formData.capitalOwnership && styles.selectionPickerSelected,
+            ]}
+            onPress={() =>
+              router.push({
+                pathname: "/stores/CapitalOwnershipSelectionScreen",
+                params: { returnScreen: "CreateProfessionalAccount" },
+              })
+            }
+          >
+            <Text
+              style={[
+                styles.selectionPickerText,
+                formData.capitalOwnership && styles.selectionPickerTextSelected,
+              ]}
+            >
+              {formData.capitalOwnershipDisplay ||
+                "Seleccionar Propiedad del Capital"}
+            </Text>
+            <MaterialIcons name="chevron-right" size={24} color="#A0A0A0" />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Tamaño de la Empresa*</Text>
+          <TouchableOpacity
+            style={[
+              styles.selectionPicker,
+              formData.companySize && styles.selectionPickerSelected,
+            ]}
+            onPress={() =>
+              router.push({
+                pathname: "/stores/CompanySizeSelectionScreen",
+                params: { returnScreen: "CreateProfessionalAccount" },
+              })
+            }
+          >
+            <Text
+              style={[
+                styles.selectionPickerText,
+                formData.companySize && styles.selectionPickerTextSelected,
+              ]}
+            >
+              {formData.companySizeDisplay ||
+                "Seleccionar Tamaño de la Empresa"}
+            </Text>
+            <MaterialIcons name="chevron-right" size={24} color="#A0A0A0" />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Forma Jurídica*</Text>
+          <TouchableOpacity
+            style={[
+              styles.selectionPicker,
+              formData.legalForm && styles.selectionPickerSelected,
+            ]}
+            onPress={() =>
+              router.push({
+                pathname: "/stores/LegalFormSelectionScreen",
+                params: { returnScreen: "CreateProfessionalAccount" },
+              })
+            }
+          >
+            <Text
+              style={[
+                styles.selectionPickerText,
+                formData.legalForm && styles.selectionPickerTextSelected,
+              ]}
+            >
+              {formData.legalFormDisplay || "Seleccionar Forma Jurídica"}
+            </Text>
+            <MaterialIcons name="chevron-right" size={24} color="#A0A0A0" />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Sector Económico*</Text>
+          <TouchableOpacity
+            style={[
+              styles.selectionPicker,
+              formData.economicSector && styles.selectionPickerSelected,
+            ]}
+            onPress={() =>
+              router.push({
+                pathname: "/stores/EconomicSectorSelectionScreen",
+                params: { returnScreen: "CreateProfessionalAccount" },
+              })
+            }
+          >
+            <Text
+              style={[
+                styles.selectionPickerText,
+                formData.economicSector && styles.selectionPickerTextSelected,
+              ]}
+            >
+              {formData.economicSectorDisplay || "Seleccionar Sector Económico"}
+            </Text>
+            <MaterialIcons name="chevron-right" size={24} color="#A0A0A0" />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Ámbito de Actuación*</Text>
+          <TouchableOpacity
+            style={[
+              styles.selectionPicker,
+              formData.operationScope && styles.selectionPickerSelected,
+            ]}
+            onPress={() =>
+              router.push({
+                pathname: "/stores/OperationScopeSelectionScreen",
+                params: { returnScreen: "CreateProfessionalAccount" },
+              })
+            }
+          >
+            <Text
+              style={[
+                styles.selectionPickerText,
+                formData.operationScope && styles.selectionPickerTextSelected,
+              ]}
+            >
+              {formData.operationScopeDisplay ||
+                "Seleccionar Ámbito de Actuación"}
             </Text>
             <MaterialIcons name="chevron-right" size={24} color="#A0A0A0" />
           </TouchableOpacity>
@@ -536,6 +1067,71 @@ const CreateProfessionalAccount = () => {
             placeholder="Ej: +24022255555"
             placeholderTextColor="#A0A0A0"
             keyboardType="phone-pad"
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Capital Social*</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.socialCapital}
+            onChangeText={(text) => handleChange("socialCapital", text)}
+            placeholder="Ej: 1,000,000 FCFA"
+            placeholderTextColor="#A0A0A0"
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Nº de Establecimientos*</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.numberOfEstablishments}
+            onChangeText={(text) =>
+              handleChange("numberOfEstablishments", text)
+            }
+            placeholder="Ej: 1"
+            placeholderTextColor="#A0A0A0"
+            keyboardType="numeric"
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Nº de Empleados*</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.numberOfEmployees}
+            onChangeText={(text) => handleChange("numberOfEmployees", text)}
+            placeholder="Ej: 12"
+            placeholderTextColor="#A0A0A0"
+            keyboardType="numeric"
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>NIF*</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.nif}
+            onChangeText={(text) => handleChange("nif", text)}
+            placeholder="Ej: 038446EG-24"
+            placeholderTextColor="#A0A0A0"
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Nº de Expediente*</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.expedientNumber}
+            onChangeText={(text) => handleChange("expedientNumber", text)}
+            placeholder="Ej: 05069/2024"
+            placeholderTextColor="#A0A0A0"
+          />
+        </View>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Nº de Certificado*</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.certificateNumber}
+            onChangeText={(text) => handleChange("certificateNumber", text)}
+            placeholder="Ej: 3025"
+            placeholderTextColor="#A0A0A0"
+            keyboardType="numeric"
           />
         </View>
         <View style={styles.inputGroup}>
@@ -658,7 +1254,7 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: "top",
   },
-  categoryPicker: {
+  selectionPicker: {
     backgroundColor: "#FFFFFF",
     borderRadius: 8,
     padding: 12,
@@ -668,15 +1264,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  categoryPickerSelected: {
+  selectionPickerSelected: {
     backgroundColor: "#e3f2fd",
     borderColor: "#00C853",
   },
-  categoryPickerText: {
+  selectionPickerText: {
     fontSize: 16,
     color: "#1A1A1A",
   },
-  categoryPickerTextSelected: {
+  selectionPickerTextSelected: {
     color: "#00C853",
     fontWeight: "500",
   },
