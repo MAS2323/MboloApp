@@ -15,21 +15,8 @@ import { API_BASE_URL } from "../../config/Service.Config";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 import Header from "../../components/Home/Header";
-
+import { COLORS } from "../../constants/theme";
 // Colores definidos (usando la paleta original proporcionada)
-const COLORS = {
-  primary: "#4c86A8",
-  secondary: "#DDF0FF",
-  tertiary: "#FF7754",
-  gray: "#83829A",
-  gray2: "#C1C0C8",
-  offwhite: "#F3F4F8",
-  white: "#FFFFFF",
-  black: "#000000",
-  red: "#e81e4d",
-  green: "#00C135",
-  lightwhite: "#FAFAFC",
-};
 
 const TiendaDetalle = () => {
   const { id } = useLocalSearchParams();
@@ -74,45 +61,49 @@ const TiendaDetalle = () => {
     cargarTienda();
   }, [id]);
 
-  // Simulación de carga inicial de productos
+  // Cargar productos reales basados en tiendaId
   useEffect(() => {
-    const cargarProductosIniciales = async () => {
+    const cargarProductos = async () => {
       try {
-        const productosIniciales = [
-          {
-            id: 1,
-            nombre: "Silla Plegable",
-            descripcion: "Producto premium de exportación",
-            precio: 39,
-            ventas: 100,
-            imagen: "https://via.placeholder.com/150",
-            categoria: "hogar",
-            nuevo: false,
-            valoracion: 4.5,
-            envioRapido: true,
-          },
-          {
-            id: 2,
-            nombre: "Sandalias",
-            descripcion: "Las más vendidas este verano",
-            precio: 25,
-            ventas: 350,
-            imagen: "https://via.placeholder.com/150",
-            categoria: "calzado",
-            nuevo: true,
-            valoracion: 4.8,
-            envioRapido: true,
-          },
-        ];
-        setProductos(productosIniciales);
-        setVisibleProductos(productosIniciales.slice(0, 2));
+        const url = `${API_BASE_URL}/products/tienda/${id}`;
+        const response = await axios.get(url);
+        let fetchedProducts = response.data.products || [];
+
+        // Deduplicate products by _id
+        fetchedProducts = Array.from(
+          new Map(fetchedProducts.map((item) => [item._id, item])).values()
+        );
+
+        console.log("Fetched Products (Deduplicated):", fetchedProducts);
+
+        // Map backend product fields to expected frontend structure
+        const formattedProducts = fetchedProducts.map((product, index) => ({
+          id: product._id,
+          nombre: product.title || "Sin título",
+          descripcion: product.description || "Sin descripción",
+          precio: product.price || 0,
+          ventas: product.sales || 0, // Placeholder: Backend doesn't provide sales
+          imagen: product.images?.[0]?.url || "https://via.placeholder.com/150",
+          categoria: product.category?.name || "Sin categoría",
+          nuevo: product.createdAt
+            ? new Date(product.createdAt) >
+              new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+            : false, // Mark as new if created within last 7 days
+          valoracion: product.rating || 4.0, // Placeholder: Backend doesn't provide rating
+          envioRapido: product.shipping?.fast || false, // Placeholder: Backend doesn't provide shipping
+        }));
+
+        setProductos(formattedProducts);
+        setVisibleProductos(formattedProducts.slice(0, 2));
       } catch (err) {
-        console.error("Error al cargar productos iniciales:", err.message);
+        console.error("Error al cargar productos:", err.message);
+        setProductos([]);
+        setVisibleProductos([]);
       }
     };
 
-    cargarProductosIniciales();
-  }, []);
+    cargarProductos();
+  }, [id]);
 
   // Cargar más productos progresivamente
   const loadMoreProductos = useCallback(() => {
@@ -195,7 +186,7 @@ const TiendaDetalle = () => {
           <View style={styles.datosTienda}>
             <Text style={styles.nombreTienda}>{tienda.name}</Text>
             <Text style={styles.propietarioTienda}>
-              Vendedor: {tienda.owner?.userName || "Anónimo"}
+              Vendedor: {tienda.propietario}
             </Text>
           </View>
         </View>
@@ -269,7 +260,9 @@ const TiendaDetalle = () => {
       <FlatList
         data={visibleProductos}
         renderItem={renderizarProducto}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item, index) =>
+          item.id ? item.id.toString() : `product-${index}`
+        }
         ListHeaderComponent={ListHeader}
         contentContainerStyle={styles.listaProductos}
         showsVerticalScrollIndicator={false}
@@ -350,7 +343,7 @@ const TiendaDetalle = () => {
 const styles = StyleSheet.create({
   contenedor: {
     flex: 1,
-    backgroundColor: COLORS.offwhite, // Usando offwhite de la paleta original
+    backgroundColor: COLORS.offwhite,
     marginTop: 30,
   },
   contenedorCarga: {
@@ -373,7 +366,7 @@ const styles = StyleSheet.create({
   },
   encabezado: {
     padding: 15,
-    backgroundColor: COLORS.white, // Fondo blanco semi-transparente
+    backgroundColor: COLORS.white,
     borderRadius: 10,
     marginHorizontal: 10,
     marginVertical: 10,
@@ -394,7 +387,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     marginRight: 15,
     borderWidth: 2,
-    borderColor: COLORS.primary, // Borde usando primary (azul)
+    borderColor: COLORS.primary,
   },
   datosTienda: {
     flex: 1,
@@ -454,7 +447,7 @@ const styles = StyleSheet.create({
   },
   pestañaActiva: {
     borderBottomWidth: 2,
-    borderBottomColor: COLORS.primary, // Línea usando primary (azul)
+    borderBottomColor: COLORS.primary,
   },
   textoPestaña: {
     fontSize: 14,
@@ -504,7 +497,7 @@ const styles = StyleSheet.create({
   },
   etiquetaNuevo: {
     alignSelf: "flex-start",
-    backgroundColor: COLORS.primary, // Usando primary (azul)
+    backgroundColor: COLORS.primary,
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -553,7 +546,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  // Estilos para el modal
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.7)",
@@ -566,7 +558,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: "90%",
-    backgroundColor: "rgba(255, 255, 255, 0.9)", // Fondo semi-transparente
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderRadius: 12,
     maxHeight: "80%",
   },
@@ -586,7 +578,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 10,
     borderWidth: 2,
-    borderColor: COLORS.primary, // Borde usando primary (azul)
+    borderColor: COLORS.primary,
   },
   modalTitle: {
     fontSize: 20,

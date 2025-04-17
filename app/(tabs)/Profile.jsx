@@ -130,9 +130,11 @@ export default function PerfilScreen() {
       onPress: () => router.push("/cart/NotificacionesScreen"),
     },
     {
-      icon: <MaterialIcons name="reorder" size={24} color={COLORS.black} />,
-      label: "Pedidos",
-      onPress: () => router.push("/cart/MisPedidosScreen"),
+      icon: (
+        <MaterialIcons name="manage-accounts" size={24} color={COLORS.black} />
+      ),
+      label: "Cuenta Oficial",
+      onPress: () => router.push("/cart/CuentaOficialScreen"),
     },
     {
       icon: (
@@ -144,6 +146,11 @@ export default function PerfilScreen() {
       ),
       label: "Mi Tienda",
       onPress: () => router.push("/cart/MiTiendaScreen"),
+    },
+    {
+      icon: <MaterialIcons name="reorder" size={24} color={COLORS.black} />,
+      label: "Pedidos",
+      onPress: () => router.push("/cart/MisPedidosScreen"),
     },
     {
       icon: <MaterialIcons name="people" size={24} color={COLORS.black} />,

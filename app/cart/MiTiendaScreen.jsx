@@ -53,6 +53,7 @@ const MiTiendaScreen = () => {
         }
         const cleanUserId = userId.replace(/"/g, "");
 
+        // Check cached data
         const storedStoreData = await AsyncStorage.getItem("store_data");
         const storedProductsData = await AsyncStorage.getItem("products_data");
 
@@ -72,6 +73,8 @@ const MiTiendaScreen = () => {
           }
         }
 
+        // Fetch store details
+        let tiendaId = null;
         try {
           const storeResponse = await axios.get(
             `${API_BASE_URL}/tienda/owner/${cleanUserId}`
@@ -90,15 +93,22 @@ const MiTiendaScreen = () => {
               owner: cleanUserId,
             };
             setTienda(storeData);
+            tiendaId = storeData.id;
             await AsyncStorage.setItem("store_data", JSON.stringify(storeData));
           } else {
             setTienda(null);
             await AsyncStorage.removeItem("store_data");
+            setProducts([]);
+            await AsyncStorage.removeItem("products_data");
+            setIsLoading(false);
+            return;
           }
         } catch (storeError) {
           if (storeError.response?.status === 404) {
             setTienda(null);
             await AsyncStorage.removeItem("store_data");
+            setProducts([]);
+            await AsyncStorage.removeItem("products_data");
           } else {
             console.error("Error al obtener la tienda:", storeError);
             Alert.alert(
@@ -106,22 +116,21 @@ const MiTiendaScreen = () => {
               "No se pudo cargar la información de tu tienda. Intenta de nuevo."
             );
           }
+          setIsLoading(false);
+          return;
         }
 
+        // Fetch products by tiendaId
         try {
           const productsResponse = await axios.get(
-            `${API_BASE_URL}/products/${cleanUserId}`
+            `${API_BASE_URL}/products/tienda/${tiendaId}`
           );
-          if (productsResponse.data) {
-            setProducts(productsResponse.data);
-            await AsyncStorage.setItem(
-              "products_data",
-              JSON.stringify(productsResponse.data)
-            );
-          } else {
-            setProducts([]);
-            await AsyncStorage.removeItem("products_data");
-          }
+          const fetchedProducts = productsResponse.data.products || [];
+          setProducts(fetchedProducts);
+          await AsyncStorage.setItem(
+            "products_data",
+            JSON.stringify(fetchedProducts)
+          );
         } catch (productsError) {
           console.error("Error al obtener los productos:", productsError);
           setProducts([]);
@@ -145,12 +154,19 @@ const MiTiendaScreen = () => {
     };
     loadStoreAndProducts();
   }, []);
-
   const renderProduct = ({ item }) => (
-    <View style={styles.productCard}>
-      {item.images && item.images.length > 0 ? (
+    <TouchableOpacity
+      style={styles.productCard}
+      onPress={() =>
+        router.push({
+          pathname: "/productDetails",
+          params: { productId: item._id },
+        })
+      }
+    >
+      {item.images && item.images.length > 0 && item.images[0].url ? (
         <Image
-          source={{ uri: item.images[0] }}
+          source={{ uri: item.images[0].url }}
           style={styles.productImage}
           onError={(e) =>
             console.error(
@@ -171,7 +187,7 @@ const MiTiendaScreen = () => {
           {item.description}
         </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   if (isLoading) {
@@ -347,7 +363,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 15,
     paddingVertical: 10,
-    // backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.gray2,
     shadowColor: COLORS.black,
@@ -496,7 +511,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  // Estilos para el modal
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.7)",

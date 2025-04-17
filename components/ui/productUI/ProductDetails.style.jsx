@@ -4,142 +4,186 @@ import { COLORS, SIZES } from "./../../../constants/theme";
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: COLORS.lightwhite,
-    marginTop: 25,
+    backgroundColor: COLORS.white,
   },
   upperRow: {
-    marginHorizontal: 20,
+    marginHorizontal: 15,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     position: "absolute",
-    top: SIZES.xxLarge,
-    width: SIZES.width - 44,
+    top: SIZES.medium,
+    width: SIZES.width - 30,
     zIndex: 999,
   },
   imageContainer: {
-    width: SIZES.width, // Ancho igual al ancho de la pantalla
-    height: SIZES.width, // Altura igual al ancho de la pantalla (para imágenes cuadradas)
+    width: SIZES.width,
+    height: SIZES.width,
     justifyContent: "center",
     alignItems: "center",
   },
   image: {
     width: "100%",
     height: "100%",
-    resizeMode: "cover", // Ajusta la imagen para cubrir el contenedor
+    resizeMode: "cover",
   },
   details: {
-    flex: 1,
-    marginTop: -SIZES.large,
-    backgroundColor: COLORS.lightwhite,
-    width: SIZES.width,
-    borderTopLeftRadius: SIZES.medium,
-    borderTopRightRadius: SIZES.medium,
     padding: SIZES.medium,
+    backgroundColor: COLORS.white,
   },
-  titleRow: {
+  priceRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: SIZES.small,
-  },
-  title: {
-    fontSize: SIZES.large,
-    fontWeight: "bold",
-  },
-  priceWrapper: {
-    backgroundColor: COLORS.secondary,
-    borderRadius: SIZES.large,
-    paddingHorizontal: SIZES.small,
   },
   price: {
-    paddingHorizontal: 10,
-    fontSize: SIZES.large,
-    padding: 10,
+    fontSize: SIZES.xLarge,
+    color: COLORS.primary,
+    fontWeight: "bold",
   },
-  ratingRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginVertical: SIZES.small,
-  },
-  rating: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  ratingText: {
-    marginLeft: SIZES.xSmall,
-    color: COLORS.gray,
-  },
-  quantityControl: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  descriptionWrapper: {
-    marginVertical: SIZES.large,
-  },
-  description: {
+  title: {
     fontSize: SIZES.medium,
-    textAlign: "justify",
-  },
-  locationWrapper: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: COLORS.secondary,
-    padding: SIZES.small,
-    borderRadius: SIZES.large,
+    color: COLORS.black,
     marginBottom: SIZES.small,
   },
-  location: {
-    flexDirection: "row",
-    alignItems: "center",
+  detailsWrapper: {
+    marginBottom: SIZES.medium,
   },
-  cartRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  detailItem: {
+    fontSize: SIZES.small,
+    color: COLORS.gray,
+    marginBottom: 5,
   },
-  cartBtn: {
-    width: SIZES.width * 0.7,
-    backgroundColor: COLORS.black,
-    padding: SIZES.small / 2,
-    borderRadius: SIZES.large,
-    marginLeft: 12,
+  descriptionWrapper: {
+    marginBottom: SIZES.medium,
   },
-  cartTitle: {
+  descriptionTitle: {
     fontSize: SIZES.medium,
-    color: COLORS.lightwhite,
-    marginLeft: SIZES.small,
-  },
-  counterText: {
-    marginTop: 10,
-    fontSize: 16,
+    color: COLORS.black,
     fontWeight: "bold",
-    color: "#333",
+    marginBottom: 5,
   },
-  addCart: {
-    width: 37,
-    height: 37,
-    borderRadius: SIZES.large,
-    backgroundColor: COLORS.black,
+  description: {
+    fontSize: SIZES.small,
+    color: COLORS.gray,
+    textAlign: "justify",
+  },
+  commentsWrapper: {
+    marginBottom: SIZES.medium,
+  },
+  commentsTitle: {
+    fontSize: SIZES.medium,
+    color: COLORS.black,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  commentItem: {
+    padding: SIZES.small,
+    backgroundColor: COLORS.offwhite,
+    borderRadius: SIZES.small,
+    marginBottom: 10,
+  },
+  commentUser: {
+    fontSize: SIZES.small,
+    color: COLORS.primary,
+    fontWeight: "bold",
+  },
+  commentText: {
+    fontSize: SIZES.small,
+    color: COLORS.gray,
+    marginVertical: 5,
+  },
+  commentDate: {
+    fontSize: SIZES.small - 2,
+    color: COLORS.gray2,
+  },
+  viewMoreComments: {
+    fontSize: SIZES.small,
+    color: COLORS.primary,
+    textAlign: "center",
+  },
+  storeContainer: {
+    padding: SIZES.medium,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.gray2,
+    backgroundColor: COLORS.white,
+  },
+  storeTitle: {
+    fontSize: SIZES.medium,
+    color: COLORS.black,
+    fontWeight: "bold",
+    marginBottom: SIZES.small,
+  },
+  storeCard: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    padding: SIZES.small,
+    backgroundColor: COLORS.white,
+    borderRadius: SIZES.small,
+    borderWidth: 1,
+    borderColor: COLORS.gray2,
   },
-  contactRow: {
+  storeLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: SIZES.small,
+    borderWidth: 1,
+    borderColor: COLORS.gray2,
+  },
+  storeInfo: {
+    flex: 1,
+  },
+  storeHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: SIZES.large,
+    marginBottom: 5,
   },
-  contactBtn: {
+  storeName: {
+    fontSize: SIZES.small + 2,
+    color: COLORS.black,
+    fontWeight: "600",
+  },
+  storeRating: {
     flexDirection: "row",
     alignItems: "center",
   },
-  contactText: {
-    marginLeft: SIZES.small,
-    color: COLORS.blue,
-    fontSize: SIZES.medium,
+  storeRatingText: {
+    fontSize: SIZES.small,
+    color: COLORS.gray,
+    marginLeft: 3,
+  },
+  storeStats: {
+    fontSize: SIZES.small - 2,
+    color: COLORS.gray,
+  },
+  storeButton: {
+    borderWidth: 1,
+    borderColor: COLORS.gray2,
+    borderRadius: SIZES.small,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    backgroundColor: COLORS.secondary,
+  },
+  storeButtonText: {
+    fontSize: SIZES.small,
+    color: COLORS.black,
+  },
+  storeError: {
+    fontSize: SIZES.small,
+    color: COLORS.red,
+    textAlign: "center",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  placeholderImage: {
+    backgroundColor: COLORS.offwhite,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

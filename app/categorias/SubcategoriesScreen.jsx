@@ -6,17 +6,19 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  SafeAreaView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import axios from "axios";
 import { API_BASE_URL } from "../../config/Service.Config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons"; // Importar MaterialIcons
 
 const SubcategoriesScreen = () => {
   const router = useRouter();
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
 
   // Cargar categorías al inicio
   useEffect(() => {
@@ -41,20 +43,13 @@ const SubcategoriesScreen = () => {
     if (categoryParam) {
       try {
         const parsedCategory = JSON.parse(categoryParam);
-        setSelectedCategory(parsedCategory);
+        setSelectedCategoryId(parsedCategory._id);
         fetchSubcategories(parsedCategory._id);
       } catch (error) {
         console.error("Error parsing selected category:", error);
       }
     }
   }, [router.params]);
-
-  // Cargar subcategorías cuando se selecciona una categoría
-  useEffect(() => {
-    if (selectedCategory) {
-      fetchSubcategories(selectedCategory._id);
-    }
-  }, [selectedCategory]);
 
   const fetchSubcategories = async (categoryId) => {
     try {
@@ -69,15 +64,26 @@ const SubcategoriesScreen = () => {
   };
 
   const handleCategorySelect = async (category) => {
-    setSelectedCategory(category);
-    setSubcategories([]); // Limpiar subcategorías al cambiar de categoría
+    if (selectedCategoryId === category._id) {
+      // Si la categoría ya está seleccionada, la deseleccionamos
+      setSelectedCategoryId(null);
+      setSubcategories([]);
+    } else {
+      // Seleccionamos la nueva categoría y cargamos sus subcategorías
+      setSelectedCategoryId(category._id);
+      setSubcategories([]);
+      fetchSubcategories(category._id);
 
-    // Guardar la categoría seleccionada en AsyncStorage
-    try {
-      await AsyncStorage.setItem("selectedCategory", JSON.stringify(category));
-    } catch (error) {
-      console.error("Error saving category:", error);
-      Alert.alert("Error", "No se pudo guardar la categoría.");
+      // Guardar la categoría seleccionada en AsyncStorage
+      try {
+        await AsyncStorage.setItem(
+          "selectedCategory",
+          JSON.stringify(category)
+        );
+      } catch (error) {
+        console.error("Error saving category:", error);
+        Alert.alert("Error", "No se pudo guardar la categoría.");
+      }
     }
   };
 
@@ -87,59 +93,71 @@ const SubcategoriesScreen = () => {
         "selectedSubcategory",
         JSON.stringify(subcategory)
       );
-      // Navegar de regreso a AddScreen
-      router.push("/AddScreen");
+      router.push("/cart/AddScreen");
     } catch (error) {
       console.error("Error saving subcategory:", error);
       Alert.alert("Error", "No se pudo guardar la subcategoría.");
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Selecciona una Categoría</Text>
-      <FlatList
-        data={categories}
-        keyExtractor={(item) => item._id}
-        renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => handleCategorySelect(item)}>
-            <View
-              style={[
-                styles.item,
-                selectedCategory?._id === item._id && styles.selectedItem,
-              ]}
-            >
-              <Text style={styles.text}>{item.name}</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-        ItemSeparatorComponent={() => <View style={styles.separator} />} // Línea divisoria
-      />
+  // Combinamos categorías y subcategorías en una sola lista para el FlatList
+  const renderData = () => {
+    let data = [];
+    categories.forEach((category) => {
+      data.push({ type: "category", data: category });
+      if (selectedCategoryId === category._id && subcategories.length > 0) {
+        subcategories.forEach((subcategory) => {
+          data.push({ type: "subcategory", data: subcategory });
+        });
+      }
+    });
+    return data;
+  };
 
-      {selectedCategory && (
-        <>
-          <Text style={styles.title}>
-            Subcategorías de {selectedCategory.name}
-          </Text>
-          {subcategories.length > 0 ? (
-            <FlatList
-              data={subcategories}
-              keyExtractor={(item) => item._id}
-              renderItem={({ item }) => (
-                <TouchableOpacity onPress={() => handleSubcategoryPress(item)}>
-                  <View style={styles.item}>
-                    <Text style={styles.text}>{item.name}</Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-              ItemSeparatorComponent={() => <View style={styles.separator} />} // Línea divisoria
-            />
-          ) : (
-            <Text style={styles.noData}>No hay subcategorías disponibles</Text>
-          )}
-        </>
-      )}
-    </View>
+  const handleBackPress = () => {
+    router.back(); // Navegar hacia atrás
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Header fijo con botón de retroceso */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+          <Text style={styles.backText}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Selecciona una Categoría</Text>
+      </View>
+
+      {/* Lista de categorías y subcategorías */}
+      <FlatList
+        data={renderData()}
+        keyExtractor={(item) => `${item.type}-${item.data._id}`}
+        contentContainerStyle={styles.listContent}
+        renderItem={({ item }) => (
+          <>
+            {item.type === "category" ? (
+              <TouchableOpacity onPress={() => handleCategorySelect(item.data)}>
+                <View style={styles.item}>
+                  <Text style={styles.text}>{item.data.name}</Text>
+                  <MaterialIcons name="chevron-right" size={24} color="#000" />
+                </View>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={() => handleSubcategoryPress(item.data)}
+              >
+                <View style={[styles.item, styles.subcategoryItem]}>
+                  <Text style={styles.text}>{item.data.name}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+        ListEmptyComponent={() => (
+          <Text style={styles.noData}>No hay categorías disponibles</Text>
+        )}
+      />
+    </SafeAreaView>
   );
 };
 
@@ -148,38 +166,60 @@ export default SubcategoriesScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff", // Fondo blanco
+    // backgroundColor: "#E6F0FA", // Fondo claro como en la imagen
   },
-  title: {
-    fontSize: 18,
-    fontWeight: "bold",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#f5f5f5", // Fondo gris claro para el título
+  header: {
+    // backgroundColor: "#FFFFFF",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0", // Línea divisoria
+    borderBottomColor: "#E0E4E7",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  backButton: {
+    marginRight: 10,
+  },
+  backText: {
+    fontSize: 18,
+    color: "#00C853", // Verde como en la imagen
+    fontWeight: "500",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "500",
+    color: "#000", // Texto negro
+    flex: 1,
+    textAlign: "center", // Centrar el título
+  },
+  listContent: {
+    paddingTop: 60, // Espacio para el header fijo
+    paddingBottom: 20,
   },
   item: {
-    backgroundColor: "#fff", // Fondo blanco para los elementos
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    // backgroundColor: "#E6F0FA", // Fondo claro
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E4E7", // Línea divisoria
   },
-  selectedItem: {
-    backgroundColor: "#e3f2fd", // Fondo azul claro para el ítem seleccionado
+  subcategoryItem: {
+    paddingLeft: 40, // Indentación para subcategorías
+    backgroundColor: "#F5F7FA", // Fondo ligeramente más claro para subcategorías
   },
   text: {
     fontSize: 16,
-    color: "#333", // Texto oscuro
+    color: "#000", // Texto negro
+    fontWeight: "400",
   },
   noData: {
     textAlign: "center",
     marginTop: 20,
     fontSize: 16,
-    color: "gray",
-  },
-  separator: {
-    height: 1,
-    backgroundColor: "#e0e0e0", // Línea divisoria gris
-    marginHorizontal: 16,
+    color: "#6B7280",
+    fontWeight: "400",
   },
 });

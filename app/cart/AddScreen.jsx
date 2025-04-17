@@ -21,8 +21,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "./../../config/Service.Config";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { Video } from "expo-av";
 
-// Colores definidos
 const COLORS = {
   primary: "#4c86A8",
   secondary: "#DDF0FF",
@@ -41,48 +41,40 @@ export default function AddScreen() {
   const router = useRouter();
   const [loader, setLoader] = useState(false);
   const [images, setImages] = useState([]);
+  const [videos, setVideos] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [categories, setCategories] = useState([]);
   const [error, setError] = useState(null);
   const [userId, setUserId] = useState(null);
   const [tiendaId, setTiendaId] = useState(null);
-  const [menuVisible, setMenuVisible] = useState(false); // Estado para el menú de opciones
+  const [menuVisible, setMenuVisible] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     supplier: "",
     price: "",
-    address: "", // Cambiado de product_location a address
     description: "",
-    phoneNumber: "",
-    domicilio: "",
-    whatsapp: "",
     type: "product",
+    tallas: [],
+    numeros_calzado: [],
+    colores: [],
   });
   const [errors, setErrors] = useState({});
 
-  // Cargar userId, tiendaId y datos del formulario desde AsyncStorage
   useEffect(() => {
     const loadInitialData = async () => {
       try {
         setLoader(true);
-        // Cargar userId
         const storedUserId = await AsyncStorage.getItem("id");
         if (storedUserId) {
           const cleanUserId = storedUserId.replace(/"/g, "");
           setUserId(cleanUserId);
 
-          // Obtener la tienda del usuario para obtener la dirección
           const storeResponse = await axios.get(
             `${API_BASE_URL}/tienda/owner/${cleanUserId}`
           );
           if (storeResponse.data && storeResponse.data._id) {
             setTiendaId(storeResponse.data._id);
-            const storeAddress = storeResponse.data.address?.name || "";
-            setFormData((prev) => ({
-              ...prev,
-              address: storeAddress, // Establecer la dirección desde la tienda
-            }));
           } else {
             Alert.alert(
               "Error",
@@ -98,16 +90,19 @@ export default function AddScreen() {
           router.push("/login");
         }
 
-        // Cargar datos del formulario desde AsyncStorage
         const storedFormData = await AsyncStorage.getItem("addProductFormData");
         if (storedFormData) {
-          const parsedFormData = JSON.parse(storedFormData);
-          setFormData(parsedFormData);
+          setFormData(JSON.parse(storedFormData));
         }
 
         const storedImages = await AsyncStorage.getItem("addProductImages");
         if (storedImages) {
           setImages(JSON.parse(storedImages));
+        }
+
+        const storedVideos = await AsyncStorage.getItem("addProductVideos");
+        if (storedVideos) {
+          setVideos(JSON.parse(storedVideos));
         }
 
         const storedCategory = await AsyncStorage.getItem("selectedCategory");
@@ -131,7 +126,6 @@ export default function AddScreen() {
     loadInitialData();
   }, []);
 
-  // Guardar datos del formulario en AsyncStorage al cambiar
   useEffect(() => {
     const saveFormData = async () => {
       try {
@@ -140,14 +134,14 @@ export default function AddScreen() {
           JSON.stringify(formData)
         );
         await AsyncStorage.setItem("addProductImages", JSON.stringify(images));
+        await AsyncStorage.setItem("addProductVideos", JSON.stringify(videos));
       } catch (error) {
         console.error("Error al guardar datos en AsyncStorage:", error);
       }
     };
     saveFormData();
-  }, [formData, images]);
+  }, [formData, images, videos]);
 
-  // Cargar categorías
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -164,7 +158,6 @@ export default function AddScreen() {
     fetchCategories();
   }, []);
 
-  // Solicitar permisos para cámara y galería
   const requestPermissions = async () => {
     if (Platform.OS !== "web") {
       const { status: galleryStatus } =
@@ -183,11 +176,11 @@ export default function AddScreen() {
     return true;
   };
 
-  // Tomar foto
   const takePhoto = async () => {
     try {
-      if (images.length >= 6) {
-        Alert.alert("Límite alcanzado", "No puedes agregar más de 6 imágenes");
+      const totalFiles = images.length + videos.length;
+      if (totalFiles >= 10) {
+        Alert.alert("Límite alcanzado", "No puedes agregar más de 10 archivos");
         return;
       }
 
@@ -202,8 +195,8 @@ export default function AddScreen() {
 
       if (!result.canceled && result.assets?.length > 0) {
         const newImages = result.assets.map((asset) => asset.uri);
-        if (images.length + newImages.length > 6) {
-          Alert.alert("Límite alcanzado", "Máximo 6 imágenes en total");
+        if (totalFiles + newImages.length > 10) {
+          Alert.alert("Límite alcanzado", "Máximo 10 archivos en total");
           return;
         }
         setImages((prevImages) => [...prevImages, ...newImages]);
@@ -213,11 +206,11 @@ export default function AddScreen() {
     }
   };
 
-  // Seleccionar imágenes de la galería
-  const pickImages = async () => {
+  const pickFiles = async () => {
     try {
-      if (images.length >= 6) {
-        Alert.alert("Límite alcanzado", "No puedes agregar más de 6 imágenes");
+      const totalFiles = images.length + videos.length;
+      if (totalFiles >= 10) {
+        Alert.alert("Límite alcanzado", "No puedes agregar más de 10 archivos");
         return;
       }
 
@@ -225,38 +218,48 @@ export default function AddScreen() {
       if (!hasPermission) return;
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
         allowsMultipleSelection: true,
         aspect: [4, 3],
         quality: 1,
       });
 
       if (!result.canceled && result.assets?.length > 0) {
-        const selectedImages = result.assets.map((asset) => asset.uri);
-        const totalImages = images.length + selectedImages.length;
+        const selectedFiles = result.assets;
+        const newImages = [];
+        const newVideos = [];
 
-        if (totalImages > 6) {
+        selectedFiles.forEach((asset) => {
+          if (asset.type === "video") {
+            newVideos.push(asset.uri);
+          } else {
+            newImages.push(asset.uri);
+          }
+        });
+
+        const totalNewFiles = newImages.length + newVideos.length;
+        if (totalFiles + totalNewFiles > 10) {
           Alert.alert(
             "Límite excedido",
-            `Solo puedes seleccionar ${6 - images.length} imagen(es) más.`
+            `Solo puedes seleccionar ${10 - totalFiles} archivo(s) más.`
           );
           return;
         }
 
-        setImages((prevImages) => [...prevImages, ...selectedImages]);
+        setImages((prevImages) => [...prevImages, ...newImages]);
+        setVideos((prevVideos) => [...prevVideos, ...newVideos]);
       }
     } catch (error) {
-      console.error("Error seleccionando imágenes:", error);
+      console.error("Error seleccionando archivos:", error);
     }
   };
 
-  // Mostrar opciones para seleccionar imagen
-  const showImagePickerOptions = () => {
+  const showFilePickerOptions = () => {
     Alert.alert(
-      "Seleccionar imagen",
+      "Seleccionar archivo",
       "Elige una opción",
       [
-        { text: "Seleccionar de Galería", onPress: pickImages },
+        { text: "Seleccionar de Galería", onPress: pickFiles },
         { text: "Tomar una foto", onPress: takePhoto },
         { text: "Cancelar", style: "cancel" },
       ],
@@ -264,11 +267,12 @@ export default function AddScreen() {
     );
   };
 
-  // Eliminar imagen
   const removeImage = (index) =>
     setImages((prev) => prev.filter((_, i) => i !== index));
 
-  // Manejar cambios en los campos del formulario
+  const removeVideo = (index) =>
+    setVideos((prev) => prev.filter((_, i) => i !== index));
+
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -276,26 +280,26 @@ export default function AddScreen() {
     }));
   };
 
-  // Limpiar el formulario y AsyncStorage
   const clearForm = async () => {
     setFormData({
       title: "",
       supplier: "",
       price: "",
-      address: formData.address, // Mantener la dirección de la tienda
       description: "",
-      phoneNumber: "",
-      domicilio: "",
-      whatsapp: "",
       type: "product",
+      tallas: [],
+      numeros_calzado: [],
+      colores: [],
     });
     setImages([]);
+    setVideos([]);
     setSelectedCategory(null);
     setSelectedSubcategory(null);
     setErrors({});
     try {
       await AsyncStorage.removeItem("addProductFormData");
       await AsyncStorage.removeItem("addProductImages");
+      await AsyncStorage.removeItem("addProductVideos");
       await AsyncStorage.removeItem("selectedCategory");
       await AsyncStorage.removeItem("selectedSubcategory");
     } catch (error) {
@@ -304,19 +308,9 @@ export default function AddScreen() {
     setMenuVisible(false);
   };
 
-  // Validar el formulario
   const validateForm = () => {
     const newErrors = {};
-    const requiredFields = [
-      "title",
-      "supplier",
-      "domicilio",
-      "price",
-      "address",
-      "description",
-      "phoneNumber",
-      "whatsapp",
-    ];
+    const requiredFields = ["title", "supplier", "price", "description"];
 
     requiredFields.forEach((key) => {
       if (!formData[key]) {
@@ -332,15 +326,14 @@ export default function AddScreen() {
       newErrors.subcategory = "Debes seleccionar una subcategoría";
     }
 
-    if (images.length === 0) {
-      newErrors.images = "Debes agregar al menos una imagen";
+    if (images.length === 0 && videos.length === 0) {
+      newErrors.files = "Debes agregar al menos un archivo (imagen o video)";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Enviar el producto
   const AddPost = async () => {
     if (!validateForm()) {
       return;
@@ -349,39 +342,57 @@ export default function AddScreen() {
     setLoader(true);
     try {
       const endpoint = `${API_BASE_URL}/products/${userId}`;
+      console.log("Sending request to:", endpoint);
+
       const formDataToSend = new FormData();
 
-      // Agregar campos del formulario
+      // Add form fields
       Object.keys(formData).forEach((key) => {
         if (formData[key]) {
-          // Enviar address como product_location para cumplir con el modelo del backend
-          if (key === "address") {
-            formDataToSend.append("product_location", formData[key]);
+          if (Array.isArray(formData[key])) {
+            formDataToSend.append(key, JSON.stringify(formData[key]));
           } else {
             formDataToSend.append(key, formData[key]);
           }
         }
       });
 
-      // Agregar categoría y subcategoría
       formDataToSend.append("category", selectedCategory._id);
       formDataToSend.append("subcategory", selectedSubcategory._id);
-
-      // Agregar ID de la tienda
       formDataToSend.append("tienda", tiendaId);
 
-      // Agregar imágenes
-      images.forEach((imageUri, index) => {
-        const uriParts = imageUri.split(".");
-        const fileType = uriParts[uriParts.length - 1];
+      // Add files
+      images.forEach((uri, index) => {
+        const fileExtension = uri.split(".").pop().toLowerCase();
+        const mimeType = `image/${
+          fileExtension === "jpg" ? "jpeg" : fileExtension
+        }`;
+        console.log(`Appending image ${index}:`, { uri, mimeType });
         formDataToSend.append("images", {
-          uri: imageUri,
-          name: `image-${index + 1}.${fileType}`,
-          type: `image/${fileType}`,
+          uri,
+          name: `image-${Date.now()}-${index}.${fileExtension}`,
+          type: mimeType,
         });
       });
 
-      // Enviar la solicitud para crear el producto
+      videos.forEach((uri, index) => {
+        const fileExtension = uri.split(".").pop().toLowerCase();
+        console.log(`Appending video ${index}:`, {
+          uri,
+          type: `video/${fileExtension}`,
+        });
+        formDataToSend.append("videos", {
+          uri,
+          name: `video-${Date.now()}-${index}.${fileExtension}`,
+          type: `video/${fileExtension}`,
+        });
+      });
+
+      // Log FormData entries
+      for (let [key, value] of formDataToSend.entries()) {
+        console.log(`FormData - ${key}:`, value);
+      }
+
       const response = await axios.post(endpoint, formDataToSend, {
         headers: {
           Accept: "application/json",
@@ -389,45 +400,35 @@ export default function AddScreen() {
         },
       });
 
+      // Handle success
       if (response.status === 201) {
-        // Actualizar la tienda para agregar el producto a su lista de products
-        const productId = response.data._id;
+        const productId = response.data.product._id;
         await axios.patch(`${API_BASE_URL}/tienda/${tiendaId}/add-product`, {
           productId,
         });
-
-        // Limpiar AsyncStorage y formulario
         await clearForm();
-        await AsyncStorage.removeItem("products_data"); // Invalidar caché de productos
-
+        await AsyncStorage.removeItem("products_data");
         Alert.alert("Éxito", "Producto agregado exitosamente", [
           {
             text: "OK",
-            onPress: () => {
-              router.replace("(tabs)");
-            },
+            onPress: () => router.replace("(tabs)"),
           },
         ]);
-      } else {
-        Alert.alert("Error", "Hubo un problema al agregar el producto.");
       }
     } catch (error) {
-      console.error("Error al agregar el producto:", error);
-      if (error.response) {
-        Alert.alert(
-          "Error",
-          error.response.data.message || "Error desconocido"
-        );
-      } else if (error.request) {
-        Alert.alert("Error", "No se pudo conectar al servidor.");
-      } else {
-        Alert.alert("Error", "Hubo un error al agregar el producto.");
-      }
+      console.error("Error al agregar el producto:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "Error al agregar el producto."
+      );
     } finally {
       setLoader(false);
     }
   };
-
   if (!userId || !tiendaId) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -446,7 +447,6 @@ export default function AddScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.cancelButton}>Cancel</Text>
@@ -462,7 +462,6 @@ export default function AddScreen() {
         style={styles.container}
       >
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Selector de categoría */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Categoría *</Text>
             <TouchableOpacity
@@ -491,53 +490,73 @@ export default function AddScreen() {
             )}
           </View>
 
-          {/* Selector de imágenes */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Imágenes</Text>
+            <Text style={styles.label}>Imágenes y Videos</Text>
             <View style={styles.imageSelectionContainer}>
               <TouchableOpacity
                 style={styles.addImageButton}
-                onPress={showImagePickerOptions}
+                onPress={showFilePickerOptions}
               >
                 <Ionicons name="add" size={24} color={COLORS.green} />
               </TouchableOpacity>
-              {images.length > 0 && (
+              {(images.length > 0 || videos.length > 0) && (
                 <FlatList
-                  data={images}
+                  data={[...images, ...videos]}
                   horizontal={true}
                   showsHorizontalScrollIndicator={false}
-                  keyExtractor={(item, index) => index.toString()}
-                  renderItem={({ item, index }) => (
-                    <View style={styles.imageWrapper}>
-                      <Image source={{ uri: item }} style={styles.image} />
-                      <TouchableOpacity
-                        style={styles.removeButton}
-                        onPress={() => removeImage(index)}
-                      >
-                        <Ionicons
-                          name="close-circle"
-                          size={20}
-                          color={COLORS.red}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  )}
+                  keyExtractor={(item, index) => `${item}-${index}`}
+                  initialNumToRender={3}
+                  windowSize={5}
+                  renderItem={({ item, index }) => {
+                    const isVideo = videos.includes(item);
+                    return (
+                      <View style={styles.imageWrapper}>
+                        {isVideo ? (
+                          <Video
+                            source={{ uri: item }}
+                            style={styles.image}
+                            resizeMode="cover"
+                            useNativeControls={false}
+                            isLooping={false}
+                            shouldPlay={false}
+                          />
+                        ) : (
+                          <Image source={{ uri: item }} style={styles.image} />
+                        )}
+                        <TouchableOpacity
+                          style={styles.removeButton}
+                          onPress={() => {
+                            if (isVideo) {
+                              removeVideo(videos.indexOf(item));
+                            } else {
+                              removeImage(images.indexOf(item));
+                            }
+                          }}
+                        >
+                          <Ionicons
+                            name="close-circle"
+                            size={20}
+                            color={COLORS.red}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  }}
                   contentContainerStyle={{ paddingHorizontal: 10 }}
                 />
               )}
             </View>
             <Text style={styles.infoText}>
-              La primera imagen será la principal. Arrastra para cambiar el
-              orden.{"\n"}
-              Formatos soportados: jpg, gif y png. Cada imagen no debe exceder 5
-              Mb.
+              La primera imagen será la principal. Máximo 10 archivos (imágenes
+              o videos).{"\n"}
+              Formatos soportados: jpg, gif, png, mp4, mpeg, mov. Cada archivo
+              no debe exceder 10 Mb.
             </Text>
-            {errors.images && (
-              <Text style={styles.errorText}>{errors.images}</Text>
+            {errors.files && (
+              <Text style={styles.errorText}>{errors.files}</Text>
             )}
           </View>
 
-          {/* Campos del formulario */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Título *</Text>
             <TextInput
@@ -548,19 +567,6 @@ export default function AddScreen() {
             />
             {errors.title && (
               <Text style={styles.errorText}>{errors.title}</Text>
-            )}
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Dirección *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Dirección del producto"
-              value={formData.address}
-              onChangeText={(text) => handleInputChange("address", text)}
-            />
-            {errors.address && (
-              <Text style={styles.errorText}>{errors.address}</Text>
             )}
           </View>
 
@@ -593,34 +599,6 @@ export default function AddScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Teléfono *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Número de teléfono"
-              value={formData.phoneNumber}
-              onChangeText={(text) => handleInputChange("phoneNumber", text)}
-              keyboardType="phone-pad"
-            />
-            {errors.phoneNumber && (
-              <Text style={styles.errorText}>{errors.phoneNumber}</Text>
-            )}
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>WhatsApp *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Número de WhatsApp"
-              value={formData.whatsapp}
-              onChangeText={(text) => handleInputChange("whatsapp", text)}
-              keyboardType="phone-pad"
-            />
-            {errors.whatsapp && (
-              <Text style={styles.errorText}>{errors.whatsapp}</Text>
-            )}
-          </View>
-
-          <View style={styles.inputContainer}>
             <Text style={styles.label}>Precio *</Text>
             <TextInput
               style={styles.input}
@@ -635,19 +613,54 @@ export default function AddScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Domicilio *</Text>
+            <Text style={styles.label}>Tallas (opcional)</Text>
             <TextInput
               style={styles.input}
-              placeholder="Domicilio de entrega"
-              value={formData.domicilio}
-              onChangeText={(text) => handleInputChange("domicilio", text)}
+              placeholder="Ej: S, M, L (separar por comas)"
+              value={formData.tallas.join(", ")}
+              onChangeText={(text) =>
+                handleInputChange(
+                  "tallas",
+                  text.split(",").map((t) => t.trim())
+                )
+              }
             />
-            {errors.domicilio && (
-              <Text style={styles.errorText}>{errors.domicilio}</Text>
-            )}
           </View>
 
-          {/* Botón de enviar */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Números de calzado (opcional)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej: 38, 39, 40 (separar por comas)"
+              value={formData.numeros_calzado.join(", ")}
+              onChangeText={(text) =>
+                handleInputChange(
+                  "numeros_calzado",
+                  text
+                    .split(",")
+                    .map((n) => parseInt(n.trim()))
+                    .filter((n) => !isNaN(n))
+                )
+              }
+              keyboardType="numeric"
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Colores (opcional)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej: Rojo, Azul, Verde (separar por comas)"
+              value={formData.colores.join(", ")}
+              onChangeText={(text) =>
+                handleInputChange(
+                  "colores",
+                  text.split(",").map((c) => c.trim())
+                )
+              }
+            />
+          </View>
+
           <TouchableOpacity
             style={[styles.submitButton, loader && styles.submitButtonDisabled]}
             onPress={AddPost}
@@ -662,7 +675,6 @@ export default function AddScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Modal para el menú de opciones */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -831,7 +843,6 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     textAlign: "center",
   },
-  // Estilos para el menú
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",

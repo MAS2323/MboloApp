@@ -6,15 +6,11 @@ import {
   Image,
   ActivityIndicator,
   TouchableOpacity,
-  Alert,
 } from "react-native";
 import React, { useState, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useRouter } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
-import { API_BASE_URL } from "../../config/Service.Config";
 
 // Colores definidos (usando la paleta proporcionada)
 const COLORS = {
@@ -35,63 +31,52 @@ const SeguidoresScreen = () => {
   const router = useRouter();
   const [seguidores, setSeguidores] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  // Cargar los datos de los seguidores
+  // Datos de prueba para los seguidores
+  const datosPruebaSeguidores = [
+    {
+      id: "1",
+      userName: "Ana García",
+      profilePicture: "https://via.placeholder.com/150/FF5733/FFFFFF?text=Ana",
+    },
+    {
+      id: "2",
+      userName: "Carlos Pérez",
+      profilePicture:
+        "https://via.placeholder.com/150/33FF57/FFFFFF?text=Carlos",
+    },
+    {
+      id: "3",
+      userName: "María López",
+      profilePicture:
+        "https://via.placeholder.com/150/5733FF/FFFFFF?text=María",
+    },
+    {
+      id: "4",
+      userName: "Juan Rodríguez",
+      profilePicture: "https://via.placeholder.com/150/FFFF33/FFFFFF?text=Juan",
+    },
+    {
+      id: "5",
+      userName: "Sofía Martínez",
+      profilePicture:
+        "https://via.placeholder.com/150/33FFFF/FFFFFF?text=Sofía",
+    },
+  ];
+
+  // Cargar los datos de prueba
   useEffect(() => {
     const loadSeguidores = async () => {
       try {
         setIsLoading(true);
-        setError(null);
-
-        // Obtener userId desde AsyncStorage
-        const userId = await AsyncStorage.getItem("id");
-        if (!userId) {
-          Alert.alert("Error", "Debes iniciar sesión para ver tus seguidores.");
-          router.navigate("LoginScreen");
-          return;
-        }
-        const cleanUserId = userId.replace(/"/g, "");
-
-        // Intentar cargar datos desde AsyncStorage primero
-        const storedSeguidoresData = await AsyncStorage.getItem(
-          "seguidores_data"
-        );
-        if (storedSeguidoresData) {
-          const parsedSeguidoresData = JSON.parse(storedSeguidoresData);
-          if (parsedSeguidoresData && Array.isArray(parsedSeguidoresData)) {
-            setSeguidores(parsedSeguidoresData);
-            setIsLoading(false);
-            return;
-          }
-        }
-
-        // Si no hay datos en AsyncStorage, consultar la API
-        const response = await axios.get(
-          `${API_BASE_URL}/seguidores/${cleanUserId}`
-        );
-        if (response.data && Array.isArray(response.data)) {
-          const seguidoresData = response.data.map((seguidor) => ({
-            id: seguidor._id,
-            userName: seguidor.userName || "Usuario Anónimo",
-            profilePicture: seguidor.profilePicture?.url || null,
-          }));
-          setSeguidores(seguidoresData);
-          // Guardar datos en AsyncStorage
-          await AsyncStorage.setItem(
-            "seguidores_data",
-            JSON.stringify(seguidoresData)
-          );
-        } else {
-          setSeguidores([]);
-          await AsyncStorage.removeItem("seguidores_data");
-        }
+        // Simular una carga de datos (para mantener la experiencia similar a la API)
+        setTimeout(() => {
+          setSeguidores(datosPruebaSeguidores);
+          setIsLoading(false);
+        }, 1000);
       } catch (err) {
-        console.error("Error al cargar seguidores:", err.message);
-        setError("No se pudo cargar la lista de seguidores. Intenta de nuevo.");
+        console.error("Error al cargar datos de prueba:", err.message);
         setSeguidores([]);
-        await AsyncStorage.removeItem("seguidores_data");
-      } finally {
         setIsLoading(false);
       }
     };
@@ -144,11 +129,7 @@ const SeguidoresScreen = () => {
       </View>
 
       {/* Lista de seguidores */}
-      {error ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : seguidores.length > 0 ? (
+      {seguidores.length > 0 ? (
         <FlatList
           data={seguidores}
           renderItem={renderSeguidor}
@@ -176,7 +157,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 15,
     paddingVertical: 10,
-    backgroundColor: COLORS.white,
+    // backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.gray2,
     shadowColor: COLORS.black,
@@ -226,18 +207,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: COLORS.offwhite,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-    backgroundColor: COLORS.offwhite,
-  },
-  errorText: {
-    fontSize: 16,
-    color: COLORS.red,
-    textAlign: "center",
   },
   emptyContainer: {
     flex: 1,
