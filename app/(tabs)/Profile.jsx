@@ -145,7 +145,7 @@ export default function PerfilScreen() {
         />
       ),
       label: "Mi Tienda",
-      onPress: () => router.push("/cart/MiTiendaScreen"),
+      onPress: () => router.push("/cart/MiTiendaScreenAdmin"),
     },
     {
       icon: <MaterialIcons name="reorder" size={24} color={COLORS.black} />,

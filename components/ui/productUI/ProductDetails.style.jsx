@@ -1,26 +1,50 @@
-import { StyleSheet } from "react-native";
-import { COLORS, SIZES } from "./../../../constants/theme";
+import { StyleSheet, Dimensions } from "react-native";
+import { COLORS, SIZES } from "../../../constants/theme";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    // backgroundColor: COLORS.offwhite,
+  },
+  header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    // backgroundColor: COLORS.white,
+    padding: SIZES.medium,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginTop: SIZES.medium,
+  },
+  sectionContainer: {
+    marginVertical: SIZES.medium,
+    padding: SIZES.medium,
     backgroundColor: COLORS.white,
+    borderRadius: 12,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   upperRow: {
-    marginHorizontal: 15,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    position: "absolute",
-    top: SIZES.medium,
-    width: SIZES.width - 30,
-    zIndex: 999,
+    marginBottom: SIZES.medium,
   },
   imageContainer: {
-    width: SIZES.width,
-    height: SIZES.width,
-    justifyContent: "center",
-    alignItems: "center",
+    width: SCREEN_WIDTH - SIZES.medium * 2,
+    height: SIZES.height * 0.4,
+    borderRadius: SIZES.medium,
+    overflow: "hidden",
   },
   image: {
     width: "100%",
@@ -28,8 +52,7 @@ const styles = StyleSheet.create({
     resizeMode: "cover",
   },
   details: {
-    padding: SIZES.medium,
-    backgroundColor: COLORS.white,
+    paddingVertical: SIZES.medium,
   },
   priceRow: {
     flexDirection: "row",
@@ -38,152 +61,79 @@ const styles = StyleSheet.create({
   },
   price: {
     fontSize: SIZES.xLarge,
-    color: COLORS.primary,
     fontWeight: "bold",
+    color: COLORS.red,
   },
   title: {
-    fontSize: SIZES.medium,
+    fontSize: SIZES.large,
+    fontWeight: "bold",
     color: COLORS.black,
-    marginBottom: SIZES.small,
+    marginBottom: SIZES.medium,
   },
   detailsWrapper: {
     marginBottom: SIZES.medium,
   },
   detailItem: {
-    fontSize: SIZES.small,
+    fontSize: SIZES.medium - 2,
     color: COLORS.gray,
-    marginBottom: 5,
+    marginBottom: SIZES.xSmall,
   },
   descriptionWrapper: {
     marginBottom: SIZES.medium,
   },
   descriptionTitle: {
     fontSize: SIZES.medium,
-    color: COLORS.black,
     fontWeight: "bold",
-    marginBottom: 5,
+    color: COLORS.black,
+    marginBottom: SIZES.xSmall,
   },
   description: {
-    fontSize: SIZES.small,
+    fontSize: SIZES.medium - 2,
     color: COLORS.gray,
-    textAlign: "justify",
+    lineHeight: SIZES.medium + 2,
   },
   commentsWrapper: {
-    marginBottom: SIZES.medium,
+    marginTop: SIZES.medium,
   },
   commentsTitle: {
     fontSize: SIZES.medium,
-    color: COLORS.black,
     fontWeight: "bold",
-    marginBottom: 10,
+    color: COLORS.black,
+    marginBottom: SIZES.medium,
   },
   commentItem: {
-    padding: SIZES.small,
-    backgroundColor: COLORS.offwhite,
-    borderRadius: SIZES.small,
-    marginBottom: 10,
+    marginBottom: SIZES.medium,
   },
   commentUser: {
-    fontSize: SIZES.small,
-    color: COLORS.primary,
+    fontSize: SIZES.medium - 2,
     fontWeight: "bold",
+    color: COLORS.black,
+    marginBottom: SIZES.xSmall,
   },
   commentText: {
-    fontSize: SIZES.small,
+    fontSize: SIZES.medium - 2,
     color: COLORS.gray,
-    marginVertical: 5,
+    marginBottom: SIZES.xSmall,
   },
   commentDate: {
-    fontSize: SIZES.small - 2,
+    fontSize: SIZES.small,
     color: COLORS.gray2,
   },
   viewMoreComments: {
-    fontSize: SIZES.small,
+    fontSize: SIZES.medium - 2,
     color: COLORS.primary,
-    textAlign: "center",
-  },
-  storeContainer: {
-    padding: SIZES.medium,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.gray2,
-    backgroundColor: COLORS.white,
-  },
-  storeTitle: {
-    fontSize: SIZES.medium,
-    color: COLORS.black,
-    fontWeight: "bold",
-    marginBottom: SIZES.small,
-  },
-  storeCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: SIZES.small,
-    backgroundColor: COLORS.white,
-    borderRadius: SIZES.small,
-    borderWidth: 1,
-    borderColor: COLORS.gray2,
-  },
-  storeLogo: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: SIZES.small,
-    borderWidth: 1,
-    borderColor: COLORS.gray2,
-  },
-  storeInfo: {
-    flex: 1,
-  },
-  storeHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 5,
-  },
-  storeName: {
-    fontSize: SIZES.small + 2,
-    color: COLORS.black,
-    fontWeight: "600",
-  },
-  storeRating: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  storeRatingText: {
-    fontSize: SIZES.small,
-    color: COLORS.gray,
-    marginLeft: 3,
-  },
-  storeStats: {
-    fontSize: SIZES.small - 2,
-    color: COLORS.gray,
-  },
-  storeButton: {
-    borderWidth: 1,
-    borderColor: COLORS.gray2,
-    borderRadius: SIZES.small,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    backgroundColor: COLORS.secondary,
-  },
-  storeButtonText: {
-    fontSize: SIZES.small,
-    color: COLORS.black,
-  },
-  storeError: {
-    fontSize: SIZES.small,
-    color: COLORS.red,
-    textAlign: "center",
+    textDecorationLine: "underline",
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  placeholderImage: {
     backgroundColor: COLORS.offwhite,
-    justifyContent: "center",
-    alignItems: "center",
+  },
+  storeError: {
+    fontSize: SIZES.medium,
+    color: COLORS.gray,
+    textAlign: "center",
   },
 });
 

@@ -10,7 +10,7 @@ import {
   ScrollView,
 } from "react-native";
 import React, { useEffect, useState, useCallback } from "react";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { API_BASE_URL } from "../../config/Service.Config";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
@@ -28,7 +28,7 @@ const TiendaDetalle = () => {
   const [visibleProductos, setVisibleProductos] = useState([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-
+  const router = useRouter();
   // Cargar datos de la tienda
   useEffect(() => {
     const cargarTienda = async () => {
@@ -120,9 +120,14 @@ const TiendaDetalle = () => {
     }
   }, [visibleProductos, productos, isLoadingMore]);
 
+  // Initialize router
+
   const renderizarProducto = useCallback(
     ({ item }) => (
-      <TouchableOpacity style={styles.tarjetaProducto}>
+      <TouchableOpacity
+        style={styles.tarjetaProducto}
+        onPress={() => router.push(`/cart/ProductDetails?id=${item.id}`)} // Navigate to ProductDetails with ID
+      >
         <Image source={{ uri: item.imagen }} style={styles.imagenProducto} />
         <View style={styles.infoProducto}>
           <Text style={styles.tituloProducto}>{item.nombre}</Text>

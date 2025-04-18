@@ -13,11 +13,12 @@ import {
 import React, { useState, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { API_BASE_URL } from "../../config/Service.Config";
 
+// Colores definidos (usando la paleta proporcionada)
 const COLORS = {
   primary: "#4c86A8",
   secondary: "#DDF0FF",
@@ -34,54 +35,37 @@ const COLORS = {
 
 const MiTiendaScreen = () => {
   const router = useRouter();
-  const { id } = useLocalSearchParams(); // Get storeId from navigation params
   const [tienda, setTienda] = useState(null);
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
 
+  // Cargar los datos de la tienda y los productos
   useEffect(() => {
     const loadStoreAndProducts = async () => {
       try {
         setIsLoading(true);
-
-        let tiendaId = id;
-        let isOwnStore = false;
-
-        // If no storeId provided, fetch the user's own store
-        if (!tiendaId) {
-          const userId = await AsyncStorage.getItem("id");
-          if (!userId) {
-            Alert.alert("Error", "Debes iniciar sesión para ver tu tienda.");
-            router.navigate("LoginScreen");
-            return;
-          }
-          const cleanUserId = userId.replace(/"/g, "");
-          const storeResponse = await axios.get(
-            `${API_BASE_URL}/tienda/owner/${cleanUserId}`
-          );
-          if (storeResponse.data) {
-            tiendaId = storeResponse.data._id;
-            isOwnStore = true;
-          } else {
-            setTienda(null);
-            setProducts([]);
-            setIsLoading(false);
-            return;
-          }
+        const userId = await AsyncStorage.getItem("id");
+        if (!userId) {
+          Alert.alert("Error", "Debes iniciar sesión para ver tu tienda.");
+          router.navigate("LoginScreen");
+          return;
         }
+        const cleanUserId = userId.replace(/"/g, "");
 
         // Check cached data
-        const cacheKey = `store_${tiendaId}`;
-        const storedStoreData = await AsyncStorage.getItem(`${cacheKey}_data`);
-        const storedProductsData = await AsyncStorage.getItem(
-          `${cacheKey}_products`
-        );
+        const storedStoreData = await AsyncStorage.getItem("store_data");
+        const storedProductsData = await AsyncStorage.getItem("products_data");
 
         if (storedStoreData && storedProductsData) {
           const parsedStoreData = JSON.parse(storedStoreData);
           const parsedProductsData = JSON.parse(storedProductsData);
-          if (parsedStoreData && parsedProductsData) {
+          if (
+            parsedStoreData &&
+            parsedStoreData.owner === cleanUserId &&
+            parsedStoreData.id &&
+            parsedProductsData
+          ) {
             setTienda(parsedStoreData);
             setProducts(parsedProductsData);
             setIsLoading(false);
@@ -90,44 +74,49 @@ const MiTiendaScreen = () => {
         }
 
         // Fetch store details
+        let tiendaId = null;
         try {
           const storeResponse = await axios.get(
-            `${API_BASE_URL}/tienda/${tiendaId}`
+            `${API_BASE_URL}/tienda/owner/${cleanUserId}`
           );
           if (storeResponse.data) {
             const storeData = {
               id: storeResponse.data._id,
-              name: storeResponse.data.name, // Use 'name' for consistency with StoreCard
-              description: storeResponse.data.description,
-              phone_number: storeResponse.data.phone_number,
-              address: storeResponse.data.address?.name || "",
+              nombre: storeResponse.data.name,
+              descripcion: storeResponse.data.description,
+              telefono: storeResponse.data.phone_number,
+              direccion: storeResponse.data.address?.name || "",
               specific_location: storeResponse.data.specific_location,
-              owner_name: storeResponse.data.owner?.userName || "",
+              propietario: storeResponse.data.owner?.userName || "",
               logo: storeResponse.data.logo?.url,
               banner: storeResponse.data.banner?.url,
+              owner: cleanUserId,
             };
             setTienda(storeData);
-            await AsyncStorage.setItem(
-              `${cacheKey}_data`,
-              JSON.stringify(storeData)
-            );
+            tiendaId = storeData.id;
+            await AsyncStorage.setItem("store_data", JSON.stringify(storeData));
           } else {
             setTienda(null);
-            await AsyncStorage.removeItem(`${cacheKey}_data`);
+            await AsyncStorage.removeItem("store_data");
             setProducts([]);
-            await AsyncStorage.removeItem(`${cacheKey}_products`);
+            await AsyncStorage.removeItem("products_data");
             setIsLoading(false);
             return;
           }
         } catch (storeError) {
-          console.error("Error al obtener la tienda:", storeError);
-          setTienda(null);
-          setProducts([]);
+          if (storeError.response?.status === 404) {
+            setTienda(null);
+            await AsyncStorage.removeItem("store_data");
+            setProducts([]);
+            await AsyncStorage.removeItem("products_data");
+          } else {
+            console.error("Error al obtener la tienda:", storeError);
+            Alert.alert(
+              "Error",
+              "No se pudo cargar la información de tu tienda. Intenta de nuevo."
+            );
+          }
           setIsLoading(false);
-          Alert.alert(
-            "Error",
-            "No se pudo cargar la información de la tienda."
-          );
           return;
         }
 
@@ -139,31 +128,36 @@ const MiTiendaScreen = () => {
           const fetchedProducts = productsResponse.data.products || [];
           setProducts(fetchedProducts);
           await AsyncStorage.setItem(
-            `${cacheKey}_products`,
+            "products_data",
             JSON.stringify(fetchedProducts)
           );
         } catch (productsError) {
           console.error("Error al obtener los productos:", productsError);
           setProducts([]);
-          await AsyncStorage.removeItem(`${cacheKey}_products`);
-          Alert.alert("Error", "No se pudieron cargar los productos.");
+          await AsyncStorage.removeItem("products_data");
+          Alert.alert(
+            "Error",
+            "No se pudieron cargar los productos. Intenta de nuevo."
+          );
         }
       } catch (error) {
         console.error("Error general al cargar datos:", error);
         setTienda(null);
         setProducts([]);
-        Alert.alert("Error", "Ocurrió un error al cargar los datos.");
+        Alert.alert(
+          "Error",
+          "Ocurrió un error al cargar los datos. Por favor, intenta de nuevo."
+        );
       } finally {
         setIsLoading(false);
       }
     };
     loadStoreAndProducts();
-  }, [id]);
-
+  }, []);
   const renderProduct = ({ item }) => (
     <TouchableOpacity
       style={styles.productCard}
-      onPress={() => router.push(`/cart/ProductDetails?id=${item._id}`)}
+      onPress={() => router.push(`/cart/ProductDetails?id=${item._id}`)} // Use id instead of productId
     >
       {item.images && item.images.length > 0 && item.images[0].url ? (
         <Image
@@ -190,7 +184,6 @@ const MiTiendaScreen = () => {
       </View>
     </TouchableOpacity>
   );
-
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -208,12 +201,10 @@ const MiTiendaScreen = () => {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{tienda?.name || "Tienda"}</Text>
-        {tienda?.owner && (
-          <TouchableOpacity onPress={() => router.push("/cart/AddScreen")}>
-            <Ionicons name="add" size={24} color={COLORS.primary} />
-          </TouchableOpacity>
-        )}
+        <Text style={styles.headerTitle}>Mi Tienda</Text>
+        <TouchableOpacity onPress={() => router.push("/cart/AddScreen")}>
+          <Ionicons name="add" size={24} color={COLORS.primary} />
+        </TouchableOpacity>
       </View>
 
       {/* Detalles de la tienda y productos */}
@@ -258,7 +249,7 @@ const MiTiendaScreen = () => {
                   />
                 </View>
               )}
-              <Text style={styles.tiendaTitle}>{tienda.name}</Text>
+              <Text style={styles.tiendaTitle}>{tienda.nombre}</Text>
             </View>
           </View>
 
@@ -280,7 +271,7 @@ const MiTiendaScreen = () => {
         </ScrollView>
       ) : (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No se encontró la tienda.</Text>
+          <Text style={styles.emptyText}>No has creado una tienda aún.</Text>
           <TouchableOpacity
             style={styles.createButton}
             onPress={() => router.push("/crear-tienda")}
@@ -320,7 +311,7 @@ const MiTiendaScreen = () => {
                     style={styles.modalLogo}
                   />
                 )}
-                <Text style={styles.modalTitle}>{tienda?.name}</Text>
+                <Text style={styles.modalTitle}>{tienda?.nombre}</Text>
               </View>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={24} color={COLORS.white} />
@@ -329,11 +320,11 @@ const MiTiendaScreen = () => {
             <ScrollView style={styles.modalDetailsContainer}>
               <View style={styles.tiendaDetails}>
                 <Text style={styles.tiendaLabel}>Descripción:</Text>
-                <Text style={styles.tiendaText}>{tienda?.description}</Text>
+                <Text style={styles.tiendaText}>{tienda?.descripcion}</Text>
                 <Text style={styles.tiendaLabel}>Teléfono:</Text>
-                <Text style={styles.tiendaText}>{tienda?.phone_number}</Text>
+                <Text style={styles.tiendaText}>{tienda?.telefono}</Text>
                 <Text style={styles.tiendaLabel}>Dirección:</Text>
-                <Text style={styles.tiendaText}>{tienda?.address}</Text>
+                <Text style={styles.tiendaText}>{tienda?.direccion}</Text>
                 {tienda?.specific_location && (
                   <>
                     <Text style={styles.tiendaLabel}>
@@ -345,7 +336,7 @@ const MiTiendaScreen = () => {
                   </>
                 )}
                 <Text style={styles.tiendaLabel}>Propietario:</Text>
-                <Text style={styles.tiendaText}>{tienda?.owner_name}</Text>
+                <Text style={styles.tiendaText}>{tienda?.propietario}</Text>
               </View>
             </ScrollView>
           </View>

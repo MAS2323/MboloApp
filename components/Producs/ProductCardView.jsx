@@ -17,8 +17,7 @@ import { useRouter } from "expo-router";
 
 const ProductCardView = ({ item }) => {
   // Verifica los datos que recibe el componente
-
-  if (!item || !item.title || !item.supplier || !item.price) {
+  if (!item || !item.title || !item.supplier || !item.price || !item._id) {
     return null; // No renderizar si los datos no son válidos
   }
 
@@ -69,12 +68,7 @@ const ProductCardView = ({ item }) => {
 
   return (
     <TouchableOpacity
-      onPress={() =>
-        router.push({
-          pathname: "/cart/ProductDetails",
-          params: { item: JSON.stringify(item) },
-        })
-      }
+      onPress={() => router.push(`/cart/ProductDetails?id=${item._id}`)} // Navigate with id
     >
       <View style={styles.container}>
         <View style={styles.imageContainer}>

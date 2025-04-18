@@ -19,6 +19,8 @@ export default function Layout() {
         <Stack.Screen name="PhoneNumbersScreen" />
         <Stack.Screen name="CrearCuentaOficialScreen" />
         <Stack.Screen name="RelatedProducts" />
+        <Stack.Screen name="MiTiendaScreenAdmin" />
+        <Stack.Screen name="StoreCard" />
         <Stack.Screen
           name="SobreNosotrosScreen"
           options={{
