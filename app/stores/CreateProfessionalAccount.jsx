@@ -44,6 +44,15 @@ const CreateProfessionalAccount = () => {
     economicSectorDisplay: "",
     operationScope: "",
     operationScopeDisplay: "",
+    socialCalculateOwnershipDisplay: "",
+    companySize: "",
+    companySizeDisplay: "",
+    legalForm: "",
+    legalFormDisplay: "",
+    economicSector: "",
+    economicSectorDisplay: "",
+    operationScope: "",
+    operationScopeDisplay: "",
     socialCapital: "1,000,000 FCFA",
     numberOfEstablishments: "1",
     numberOfEmployees: "12",
@@ -98,11 +107,11 @@ const CreateProfessionalAccount = () => {
           setFormData((prev) => ({
             ...prev,
             address: address._id,
-            addressDetails: `${address.street}, ${address.city}, ${
-              address.state
-            }, ${address.country}${
-              address.postalCode ? `, ${address.postalCode}` : ""
-            }`,
+            addressDetails: `${address.street ? address.street + ", " : ""}${
+              address.city
+            }${address.state ? ", " + address.state : ""}${
+              address.country ? ", " + address.country : ""
+            }${address.postalCode ? ", " + address.postalCode : ""}`,
           }));
         }
 
@@ -281,7 +290,7 @@ const CreateProfessionalAccount = () => {
           await AsyncStorage.setItem(
             "selectedLegalForm",
             JSON.stringify({
-              value: params.legalFormValue, // Corrección del error tipográfico
+              value: params.legalFormValue,
               display: params.legalFormDisplay,
             })
           );
@@ -384,13 +393,21 @@ const CreateProfessionalAccount = () => {
           subcategoryName: response.data.subcategory?.name || "",
           address: response.data.address?._id || "",
           addressDetails: response.data.address
-            ? `${response.data.address.street}, ${
-                response.data.address.city
-              }, ${response.data.address.state}, ${
+            ? `${
+                response.data.address.street
+                  ? response.data.address.street + ", "
+                  : ""
+              }${response.data.address.city}${
+                response.data.address.state
+                  ? ", " + response.data.address.state
+                  : ""
+              }${
                 response.data.address.country
+                  ? ", " + response.data.address.country
+                  : ""
               }${
                 response.data.address.postalCode
-                  ? `, ${response.data.address.postalCode}`
+                  ? ", " + response.data.address.postalCode
                   : ""
               }`
             : "",
@@ -422,7 +439,6 @@ const CreateProfessionalAccount = () => {
       } else if (error.response?.status === 400) {
         Alert.alert("Error", "El ID del usuario no es válido.");
         await AsyncStorage.removeItem("id");
-        // Limpiar todas las selecciones al cerrar sesión
         await AsyncStorage.multiRemove([
           "professional_data",
           "selectedCategory",
@@ -464,7 +480,6 @@ const CreateProfessionalAccount = () => {
         const parsedId = JSON.parse(id);
         if (!parsedId || typeof parsedId !== "string") {
           await AsyncStorage.removeItem("id");
-          // Limpiar todas las selecciones al cerrar sesión
           await AsyncStorage.multiRemove([
             "professional_data",
             "selectedCategory",
@@ -1210,6 +1225,27 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+    zIndex: 1,
+  },
+  headerText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1A1A1A",
+  },
+  container: {
+    padding: 15,
+    paddingTop: 60,
+    paddingBottom: 40,
+  },
+  inputGroup: {
+    marginBottom: 20,
+    flowDirection: "row",
     justifyContent: "flex-start",
     alignItems: "center",
     paddingHorizontal: 15,

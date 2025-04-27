@@ -16,7 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { API_BASE_URL } from "../../config/Service.Config";
 
-// Colores definidos (usando la paleta proporcionada)
+// Colores definidos
 const COLORS = {
   primary: "#4c86A8",
   secondary: "#DDF0FF",
@@ -37,9 +37,9 @@ const CuentaOficialScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Cargar las cuentas oficiales (simulado por ahora)
+  // Cargar la cuenta profesional desde la API
   useEffect(() => {
-    const loadCuentasOficiales = async () => {
+    const loadCuentaProfesional = async () => {
       try {
         setIsLoading(true);
         setError(null);
@@ -49,40 +49,39 @@ const CuentaOficialScreen = () => {
         if (!userId) {
           Alert.alert(
             "Error",
-            "Debes iniciar sesión para ver tus cuentas oficiales."
+            "Debes iniciar sesión para ver tu cuenta profesional."
           );
-          router.navigate("LoginScreen");
+          router.navigate("/login");
           return;
         }
         const cleanUserId = userId.replace(/"/g, "");
 
-        // Simulación: Cargar datos vacíos inicialmente
-        setCuentasOficiales([]);
-      } catch (err) {
-        console.error("Error al cargar cuentas oficiales:", err.message);
-        setError(
-          "No se pudo cargar la lista de cuentas oficiales. Intenta de nuevo."
+        // Llamada a la API para obtener la cuenta profesional del usuario
+        const response = await axios.get(
+          `${API_BASE_URL}/professional/owner/${cleanUserId}`
         );
+
+        // La API devuelve un objeto profesional o null si no existe
+        const professional = response.data.professional;
+        setCuentasOficiales(professional ? [professional] : []);
+      } catch (err) {
+        console.error("Error al cargar cuenta profesional:", err.message);
+        setError("No se pudo cargar la cuenta profesional. Intenta de nuevo.");
         setCuentasOficiales([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadCuentasOficiales();
+    loadCuentaProfesional();
   }, []);
 
-  // Función para agregar una nueva cuenta oficial desde CrearCuentaOficialScreen
-  const handleNuevaCuenta = (nuevaCuenta) => {
-    setCuentasOficiales((prev) => [...prev, nuevaCuenta]);
-  };
-
-  // Componente para renderizar cada cuenta oficial
+  // Componente para renderizar la cuenta profesional
   const renderCuentaOficial = ({ item }) => (
     <View style={styles.cuentaCard}>
-      {item.imagen ? (
+      {item.avatar?.url ? (
         <Image
-          source={{ uri: item.imagen }}
+          source={{ uri: item.avatar.url }}
           style={styles.cuentaImage}
           onError={(e) =>
             console.error(
@@ -97,9 +96,9 @@ const CuentaOficialScreen = () => {
         </View>
       )}
       <View style={styles.cuentaInfo}>
-        <Text style={styles.cuentaNombre}>{item.nombre}</Text>
+        <Text style={styles.cuentaNombre}>{item.name}</Text>
         <Text style={styles.cuentaDescripcion} numberOfLines={2}>
-          {item.descripcion}
+          {item.description}
         </Text>
       </View>
     </View>
@@ -122,20 +121,18 @@ const CuentaOficialScreen = () => {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Cuentas Oficiales</Text>
-        <TouchableOpacity
-          onPress={() =>
-            router.push({
-              pathname: "/cart/CrearCuentaOficialScreen",
-              params: { onCuentaCreada: handleNuevaCuenta },
-            })
-          }
-        >
-          <Ionicons name="add" size={24} color={COLORS.primary} />
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Cuenta Profesional</Text>
+        {/* No mostramos el botón de "Agregar" si ya existe una cuenta */}
+        {cuentasOficiales.length === 0 && (
+          <TouchableOpacity
+            onPress={() => router.push("/crear-cuenta-oficial")}
+          >
+            <Ionicons name="add" size={24} color={COLORS.primary} />
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* Lista de cuentas oficiales */}
+      {/* Lista de cuentas profesionales */}
       {error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
@@ -144,23 +141,22 @@ const CuentaOficialScreen = () => {
         <FlatList
           data={cuentasOficiales}
           renderItem={renderCuentaOficial}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item._id.toString()}
           contentContainerStyle={styles.cuentasList}
           showsVerticalScrollIndicator={false}
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No tienes cuentas oficiales aún.</Text>
+          <Text style={styles.emptyText}>
+            No tienes una cuenta profesional aún.
+          </Text>
           <TouchableOpacity
             style={styles.createButton}
-            onPress={() =>
-              router.push({
-                pathname: "/crear-cuenta-oficial",
-                params: { onCuentaCreada: handleNuevaCuenta },
-              })
-            }
+            onPress={() => router.push("/crear-cuenta-  n")}
           >
-            <Text style={styles.createButtonText}>Crear Cuenta Oficial</Text>
+            <Text style={styles.createButtonText}>
+              Crear Cuenta Profesional
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -171,7 +167,7 @@ const CuentaOficialScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: COLORS.offwhite,
+    backgroundColor: COLORS.offwhite,
   },
   header: {
     flexDirection: "row",
@@ -179,7 +175,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 15,
     paddingVertical: 10,
-    // backgroundColor: COLORS.white,
+    backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.gray2,
     shadowColor: COLORS.black,

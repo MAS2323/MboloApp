@@ -10,40 +10,38 @@ import {
   ScrollView,
 } from "react-native";
 import React, { useEffect, useState } from "react";
-import { router } from "expo-router";
+import { router, useNavigation } from "expo-router";
 import { API_BASE_URL } from "../../config/Service.Config";
 import axios from "axios";
 
 const AllStoreScreen = () => {
   const [tiendas, setTiendas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("Recomendado");
+  const [activeTab, setActiveTab] = useState("Cuentas Oficiales");
   const { width } = useWindowDimensions();
+  const navigation = useNavigation();
 
   // Calcular dimensiones responsive
-  const NUM_COLUMNS = width < 600 ? 2 : 3; // 2 columnas en móvil, 3 en tablet
-  const ITEM_MARGIN = width * 0.01; // Margen responsive (1% del ancho de pantalla)
+  const NUM_COLUMNS = width < 600 ? 2 : 3;
+  const ITEM_MARGIN = width * 0.01;
   const ITEM_WIDTH =
     (width - ITEM_MARGIN * (NUM_COLUMNS * 2 + 2)) / NUM_COLUMNS;
 
+  // Cargar las tiendas al montar el componente
   useEffect(() => {
     const fetchTiendas = async () => {
       try {
         const url = `${API_BASE_URL}/tienda`;
-
         if (!API_BASE_URL) {
           throw new Error(
             "API_BASE_URL is undefined. Check Service.Config.js."
           );
         }
-
         const response = await axios.get(url);
         const data = response.data;
-
         if (response.status !== 200) {
           throw new Error(data.message || "Error fetching stores");
         }
-
         setTiendas(data);
       } catch (error) {
         console.error("Error fetching stores:", error.message);
@@ -52,9 +50,17 @@ const AllStoreScreen = () => {
         setLoading(false);
       }
     };
-
     fetchTiendas();
   }, []);
+
+  // Asegurarse de que al regresar se muestre "Cuentas Oficiales"
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      setActiveTab("Cuentas Oficiales");
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   const renderTiendaItem = ({ item }) => (
     <TouchableOpacity
@@ -85,12 +91,12 @@ const AllStoreScreen = () => {
     );
   }
 
-  const tabs = ["Recomendado", "Amigos", "Global"];
+  const tabs = ["Cuentas Oficiales", "AppCenter"];
 
   return (
     <View style={styles.container}>
-      {/* Menú de navegación responsive */}
-      {/* <ScrollView
+      {/* Menú de navegación */}
+      <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.menuNavContainer}
@@ -102,7 +108,12 @@ const AllStoreScreen = () => {
               styles.menuItem,
               activeTab === tab && styles.menuItemActive,
             ]}
-            onPress={() => setActiveTab(tab)}
+            onPress={() => {
+              setActiveTab(tab);
+              if (tab === "AppCenter") {
+                router.push("/cart/AppCenter");
+              }
+            }}
           >
             <Text
               style={[
@@ -114,22 +125,24 @@ const AllStoreScreen = () => {
             </Text>
           </TouchableOpacity>
         ))}
-      </ScrollView> */}
+      </ScrollView>
 
-      {/* Lista de tiendas responsive */}
-      <FlatList
-        data={tiendas}
-        renderItem={renderTiendaItem}
-        keyExtractor={(item) => item._id}
-        numColumns={NUM_COLUMNS}
-        contentContainerStyle={styles.listContainer}
-        columnWrapperStyle={{ justifyContent: "flex-start" }}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No hay tiendas disponibles</Text>
-          </View>
-        }
-      />
+      {/* Lista de tiendas para Cuentas Oficiales */}
+      {activeTab === "Cuentas Oficiales" && (
+        <FlatList
+          data={tiendas}
+          renderItem={renderTiendaItem}
+          keyExtractor={(item) => item._id}
+          numColumns={NUM_COLUMNS}
+          contentContainerStyle={styles.listContainer}
+          columnWrapperStyle={{ justifyContent: "flex-start" }}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No hay tiendas disponibles</Text>
+            </View>
+          }
+        />
+      )}
     </View>
   );
 };

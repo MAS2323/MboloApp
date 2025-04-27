@@ -20,7 +20,9 @@ export default function Layout() {
         <Stack.Screen name="CrearCuentaOficialScreen" />
         <Stack.Screen name="RelatedProducts" />
         <Stack.Screen name="MiTiendaScreenAdmin" />
+        <Stack.Screen name="AppCenter" />
         <Stack.Screen name="StoreCard" />
+        <Stack.Screen name="MiniAppWebView" options={{ headerShown: false }} />
         <Stack.Screen
           name="SobreNosotrosScreen"
           options={{

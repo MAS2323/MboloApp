@@ -16,7 +16,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MaterialIcons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker"; // Agregar para selección de imágenes
+import * as ImagePicker from "expo-image-picker";
 
 // Colores definidos
 const COLORS = {
@@ -52,8 +52,26 @@ const CrearCuentaOficialScreen = () => {
   const [whatsapp, setWhatsapp] = useState("");
   const [images, setImages] = useState([]);
   const [loader, setLoader] = useState(false);
+  const [professionalName, setProfessionalName] = useState("");
 
-  const professionalName = "MAS ONEWE";
+  // Obtener el nombre del usuario autenticado
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const userData = await AsyncStorage.getItem("userData");
+        if (userData) {
+          const parsedUserData = JSON.parse(userData);
+          setProfessionalName(parsedUserData.name || "Usuario desconocido");
+        } else {
+          setProfessionalName("Usuario no autenticado");
+        }
+      } catch (error) {
+        console.error("Error al obtener datos del usuario:", error);
+        setProfessionalName("Error al cargar nombre");
+      }
+    };
+    fetchUserData();
+  }, []);
 
   // Cargar selecciones previas desde AsyncStorage
   useEffect(() => {
@@ -322,7 +340,9 @@ const CrearCuentaOficialScreen = () => {
       name: nombre,
       description: descripcion,
       category,
+      categoryName,
       subcategory,
+      subcategoryName,
       location: { city, province },
       contact: { phoneNumber, whatsapp: whatsapp || null },
       images: images.map((url, index) => ({
@@ -334,6 +354,19 @@ const CrearCuentaOficialScreen = () => {
       horario: [],
     };
 
+    // Guardar en AsyncStorage
+    try {
+      const storedCuentas = await AsyncStorage.getItem("cuentasOficiales");
+      const cuentas = storedCuentas ? JSON.parse(storedCuentas) : [];
+      cuentas.push(nuevaCuenta);
+      await AsyncStorage.setItem("cuentasOficiales", JSON.stringify(cuentas));
+    } catch (error) {
+      console.error("Error al guardar cuenta:", error);
+      Alert.alert("Error", "No se pudo guardar la cuenta.");
+      return;
+    }
+
+    // Limpiar selecciones previas
     await AsyncStorage.multiRemove([
       "selectedMenuCategory",
       "selectedMenuSubcategory",
@@ -343,8 +376,12 @@ const CrearCuentaOficialScreen = () => {
     ]);
 
     params.onCuentaCreada?.(nuevaCuenta);
-    Alert.alert("Éxito", "Cuenta oficial creada (simulada).");
-    router.back();
+    Alert.alert("Éxito", "Cuenta oficial creada.", [
+      {
+        text: "OK",
+        onPress: () => router.push("/stores/MisCuentasScreen"),
+      },
+    ]);
   };
 
   return (

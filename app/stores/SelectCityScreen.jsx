@@ -70,38 +70,38 @@ const SelectCityScreen = () => {
   // Manejar la selección de una ciudad
   const handleSelectCity = async (city) => {
     try {
-      // Actualizar en el backend
-      await axios.put(
-        `${API_BASE_URL}/user/${userId}`,
-        { ciudad: { id: city._id, name: city.name } },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      // Actualizar en AsyncStorage
-      const updatedUserData = {
-        ...userData,
-        ciudad: { id: city._id, name: city.name },
+      // Store the selected city in AsyncStorage
+      const selectedAddress = {
+        _id: city._id,
+        street: "",
+        city: city.name,
+        state: "",
+        country: "",
+        postalCode: "",
       };
       await AsyncStorage.setItem(
-        `user${userId}`,
-        JSON.stringify(updatedUserData)
+        "selectedAddress",
+        JSON.stringify(selectedAddress)
       );
-      setUserData(updatedUserData);
 
-      Alert.alert("Éxito", "Ubicación actualizada correctamente");
-      router.back(); // Regresar a la pantalla anterior
+      // Navigate back to CreateProfessionalAccount with the selected city data
+      router.push({
+        pathname: "/professionals/CreateProfessionalAccount",
+        params: {
+          addressId: city._id,
+          addressDetails: city.name,
+          street: "",
+          city: city.name,
+          state: "",
+          country: "",
+          postalCode: "",
+        },w
+      });
     } catch (error) {
-      console.error(
-        "Error al actualizar la ubicación:",
-        error.response?.data || error.message
-      );
+      console.error("Error al seleccionar la ciudad:", error);
       Alert.alert(
         "Error",
-        "No se pudo actualizar la ubicación. Por favor, intenta de nuevo más tarde."
+        "No se pudo seleccionar la ciudad. Intenta de nuevo."
       );
     }
   };
