@@ -74,7 +74,7 @@ const TiendaDetalle = () => {
           new Map(fetchedProducts.map((item) => [item._id, item])).values()
         );
 
-        console.log("Fetched Products (Deduplicated):", fetchedProducts);
+        // console.log("Fetched Products (Deduplicated):", fetchedProducts);
 
         // Map backend product fields to expected frontend structure
         const formattedProducts = fetchedProducts.map((product, index) => ({

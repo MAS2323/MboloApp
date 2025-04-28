@@ -18,8 +18,6 @@ const MiniAppWebView = () => {
   // States to track WebView navigation
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
-  console.log("Route params in MiniAppWebView:", useLocalSearchParams());
-  console.log("Received webViewDataRaw in MiniAppWebView:", webViewDataRaw);
 
   // Parse webViewData if it's a JSON string
   let webViewData;
@@ -38,8 +36,6 @@ const MiniAppWebView = () => {
     typeof webViewData === "object" && webViewData?.url
       ? webViewData.url
       : webViewData;
-  console.log("Processed URL for WebView:", url);
-
   // Handle empty or invalid URL
   if (!url || typeof url !== "string" || url.trim() === "") {
     console.warn("No valid URL provided, rendering error screen");
@@ -159,7 +155,6 @@ const MiniAppWebView = () => {
             console.log("Message from WebView:", event.nativeEvent.data);
           }}
           onNavigationStateChange={(navState) => {
-            console.log("WebView navigation state:", navState);
             setCanGoBack(navState.canGoBack);
             setCanGoForward(navState.canGoForward);
           }}

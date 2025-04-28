@@ -89,8 +89,8 @@ const AppCenter = () => {
       ? item.url
       : `https://${item.url}`;
     const webViewData = item.webViewData ?? "";
-    console.log("Item:", item);
-    console.log("Normalized URL:", normalizedUrl, "WebViewData:", webViewData);
+    // console.log("Item:", item);
+    // console.log("Normalized URL:", normalizedUrl, "WebViewData:", webViewData);
 
     return (
       <TouchableOpacity
@@ -100,14 +100,14 @@ const AppCenter = () => {
             typeof webViewData === "object"
               ? JSON.stringify(webViewData)
               : webViewData;
-          console.log("Navigating with webViewData:", webViewDataString);
+          //   console.log("Navigating with webViewData:", webViewDataString);
           try {
             router.navigate(
               `/cart/MiniAppWebView?webViewData=${encodeURIComponent(
                 webViewDataString
               )}`
             );
-            console.log("Navigation initiated successfully");
+            // console.log("Navigation initiated successfully");
           } catch (error) {
             console.error("Navigation error:", error);
           }
@@ -139,9 +139,10 @@ const AppCenter = () => {
             <MaterialIcons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>AppCenter</Text>
-          <TouchableOpacity>
+          {/* Commented out search button */}
+          {/* <TouchableOpacity>
             <MaterialIcons name="search" size={24} color="#000" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
         {/* WebView para mostrar el contenido web */}
         <WebView
@@ -161,15 +162,16 @@ const AppCenter = () => {
   // Mostrar la lista de aplicaciones si no hay ninguna seleccionada
   return (
     <SafeAreaView style={styles.safeContainer}>
-      {/* Header fijo */}
+      {/* Header fija */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>AppCenter</Text>
-        <TouchableOpacity>
+        {/* Commented out search button */}
+        {/* <TouchableOpacity>
           <MaterialIcons name="search" size={24} color="#000" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       {/* Contenido desplazable */}
@@ -299,7 +301,7 @@ const AppCenter = () => {
 
         {/* Texto final */}
         <Text style={styles.footerText}>
-          Enjoy delightful services in Alipay
+          Disfruta de servicios encantadores en MboloApp
         </Text>
 
         {/* Espacio adicional para evitar que el contenido se corte */}
@@ -316,7 +318,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-between", // Changed to space-between to balance back button and title
     alignItems: "center",
     paddingHorizontal: 15,
     paddingVertical: 12,
@@ -329,6 +331,8 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     color: "#000",
+    flex: 1, // Allow title to take remaining space
+    textAlign: "center", // Center the text
   },
   scrollContainer: {
     flex: 1,

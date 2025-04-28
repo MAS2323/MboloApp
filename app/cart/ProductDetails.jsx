@@ -35,7 +35,7 @@ export default function ProductDetails() {
           throw new Error("ID de producto no proporcionado");
         }
         const response = await axios.get(`${API_BASE_URL}/products/${id}`);
-        console.log("Product API response:", response.data);
+        // console.log("Product API response:", response.data);
         setProduct(response.data);
       } catch (error) {
         console.error("Error al cargar el producto:", error.message);
@@ -178,7 +178,7 @@ export default function ProductDetails() {
     },
   ];
 
-  console.log("Passing to RelatedProducts:", sections[3].data);
+  // console.log("Passing to RelatedProducts:", sections[3].data);
 
   const renderSection = ({ item }) => {
     switch (item.type) {

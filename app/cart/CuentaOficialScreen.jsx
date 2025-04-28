@@ -125,7 +125,7 @@ const CuentaOficialScreen = () => {
         {/* No mostramos el botón de "Agregar" si ya existe una cuenta */}
         {cuentasOficiales.length === 0 && (
           <TouchableOpacity
-            onPress={() => router.push("/crear-cuenta-oficial")}
+            onPress={() => router.push("/cart/CrearCuentaOficialScreen")}
           >
             <Ionicons name="add" size={24} color={COLORS.primary} />
           </TouchableOpacity>
@@ -167,7 +167,7 @@ const CuentaOficialScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.offwhite,
+    // backgroundColor: COLORS.offwhite,
   },
   header: {
     flexDirection: "row",
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 15,
     paddingVertical: 10,
-    backgroundColor: COLORS.white,
+    // backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.gray2,
     shadowColor: COLORS.black,
